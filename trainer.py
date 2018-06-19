@@ -10,7 +10,6 @@ from torch import nn
 import torch.nn.parallel
 import torchvision.utils as vutils
 from torch.autograd import Variable
-
 from models import *
 from data_loader import get_loader
 
@@ -60,10 +59,10 @@ class Trainer(object):
             self.D_B.cuda()
 
         elif self.num_gpu > 1:
-            self.G_AB = nn.DataParallel(self.G_AB.cuda(),device_ids=range(self.num_gpu))
-            self.G_BA = nn.DataParallel(self.G_BA.cuda(),device_ids=range(self.num_gpu))
-            self.D_A = nn.DataParallel(self.D_A.cuda(),device_ids=range(self.num_gpu))
-            self.D_B = nn.DataParallel(self.D_B.cuda(),device_ids=range(self.num_gpu))
+            self.G_AB = nn.DataParallel(self.G_AB.cuda(),device_ids=range(torch.cuda.device_count()))
+            self.G_BA = nn.DataParallel(self.G_BA.cuda(),device_ids=range(torch.cuda.device_count()))
+            self.D_A = nn.DataParallel(self.D_A.cuda(),device_ids=range(torch.cuda.device_count()))
+            self.D_B = nn.DataParallel(self.D_B.cuda(),device_ids=range(torch.cuda.device_count()))
 
         if self.load_path:
             self.load_model()
