@@ -204,10 +204,8 @@ class Trainer(object):
             x_BA = self.G_BA(x_B, x_A).detach()
 
             # Concat generated data
-
-
-            x_ABA = self.G_BA(x_AB).detach()
-            x_BAB = self.G_AB(x_BA).detach()
+            #x_ABA = self.G_BA(x_AB).detach()
+            #x_BAB = self.G_AB(x_BA).detach()
 
             if self.loss == "log_prob":
                 l_d_A_real, l_d_A_fake = bce(self.D_A(x_A), real_tensor), bce(self.D_A(x_BA), fake_tensor)
@@ -235,13 +233,14 @@ class Trainer(object):
             x_AB = self.G_AB(x_A, x_B)
             x_BA = self.G_BA(x_B, x_A)
 
-            #x_ABA = self.G_BA(x_AB)
-            #x_BAB = self.G_AB(x_BA)
+            x_ABd = self.G_AB(x_A, x_B).detach()
+            x_BAd = self.G_BA(x_B, x_A).detach()
+
 
             l_const_A = d(self.G_BA(x_AB,x_A), x_A) + d(self.G_BA(x_A,x_BA), x_A) + d(self.G_BA(x_AB,x_BA), x_A)
             l_const_B = d(self.G_AB(x_B,x_AB), x_B) + d(self.G_AB(x_BA,x_B), x_B) + d(self.G_AB(x_BA,x_AB), x_B)
-            l_const_AB =d(self.G_AB(x_AB,x_B), x_AB) +d(self.G_AB(x_A,x_AB), x_AB) +d(self.G_AB(x_AB,x_AB), x_AB)
-            l_const_BA =d(self.G_BA(x_BA,x_A), x_BA) +d(self.G_BA(x_B,x_BA), x_BA) +d(self.G_BA(x_BA,x_BA), x_BA)
+            l_const_AB =d(self.G_AB(x_AB,x_B), x_ABd) +d(self.G_AB(x_A,x_AB), x_ABd) +d(self.G_AB(x_AB,x_AB), x_ABd)
+            l_const_BA =d(self.G_BA(x_BA,x_A), x_BAd) +d(self.G_BA(x_B,x_BA), x_BAd) +d(self.G_BA(x_BA,x_BA), x_BAd)
 
             if self.loss == "log_prob":
                 l_gan_A = bce(self.D_A(x_BA), real_tensor)
@@ -263,15 +262,14 @@ class Trainer(object):
                 print("[{}/{}] l_d_A_real: {:.4f} l_d_A_fake: {:.4f}, l_d_B_real: {:.4f}, l_d_B_fake: {:.4f}". \
                         format(step, self.max_step, l_d_A_real.data[0], l_d_A_fake.data[0],
                              l_d_B_real.data[0], l_d_B_fake.data[0]))
-                print("[{}/{}] l_const_A: {:.4f} l_const_B: {:.4f}, l_const_AB: {:.f}, l_const_BA: {:.f}". \
+                print("[{}/{}] l_const_A: {:.4f} l_const_B: {:.4f}, l_const_AB: {:.4f}, l_const_BA: {:.4f}". \
                         format(step, self.max_step, l_const_A.data[0], l_const_B.data[0],
-                          l_const_AB.data[0], l_const_BA[0]))
+                          l_const_AB.data[0], l_const_BA.data[0]))
                 print("[{}/{}] l_gan_A: {:.4f}, l_gan_B: {:.4f}". \
                         format(step, self.max_step, l_gan_A.data[0], l_gan_B.data[0]))
 
-
-                self.generate_with_A(valid_x_A, self.model_dir, idx=step)
-                self.generate_with_B(valid_x_B, self.model_dir, idx=step)
+                self.generate_with_A(valid_x_A, valid_x_B, self.model_dir, idx=step)
+                self.generate_with_B(valid_x_B, valid_x_A, self.model_dir, idx=step)
 
             if step % self.save_step == self.save_step - 1:
                 print("[*] Save models to {}...".format(self.model_dir))
@@ -282,9 +280,9 @@ class Trainer(object):
                 torch.save(self.D_A.state_dict(), '{}/D_A_{}.pth'.format(self.model_dir, step))
                 torch.save(self.D_B.state_dict(), '{}/D_B_{}.pth'.format(self.model_dir, step))
 
-    def generate_with_A(self, inputs, path, idx=None):
-        x_AB = self.G_AB(inputs)
-        x_ABA = self.G_BA(x_AB)
+    def generate_with_A(self, inputs, input_ref, path, idx=None):
+        x_AB = self.G_AB(inputs, input_ref)
+        x_ABA = self.G_BA(x_AB, inputs)
 
         x_AB_path = '{}/{}_x_AB.png'.format(path, idx)
         x_ABA_path = '{}/{}_x_ABA.png'.format(path, idx)
@@ -295,9 +293,9 @@ class Trainer(object):
         vutils.save_image(x_ABA.data, x_ABA_path)
         print("[*] Samples saved: {}".format(x_ABA_path))
 
-    def generate_with_B(self, inputs, path, idx=None):
-        x_BA = self.G_BA(inputs)
-        x_BAB = self.G_AB(x_BA)
+    def generate_with_B(self, inputs, input_ref, path, idx=None):
+        x_BA = self.G_BA(inputs, input_ref)
+        x_BAB = self.G_AB(x_BA, inputs)
 
         x_BA_path = '{}/{}_x_BA.png'.format(path, idx)
         x_BAB_path = '{}/{}_x_BAB.png'.format(path, idx)

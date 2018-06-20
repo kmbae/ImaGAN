@@ -37,8 +37,8 @@ class GeneratorCNN(nn.Module):
             out = layer(out)
         return out
 
-    def forward(self, x):
-        return self.main(x)
+    def forward(self, x, y):
+        return self.main(x, y)
 
 class DiscriminatorCNN(nn.Module):
     def __init__(self, input_channel, output_channel, hidden_dims, num_gpu):
