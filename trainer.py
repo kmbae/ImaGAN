@@ -88,9 +88,9 @@ class Trainer(object):
                 raise Exception("[!] cnn_type {} is not defined".format(self.cnn_type))
 
             self.G_AB = GeneratorCNN(
-                    a_channel, b_channel, conv_dims, deconv_dims, self.num_gpu)
+                    a_channel+b_channel, b_channel, conv_dims, deconv_dims, self.num_gpu)
             self.G_BA = GeneratorCNN(
-                    b_channel, a_channel, conv_dims, deconv_dims, self.num_gpu)
+                    b_channel+a_channel, a_channel, conv_dims, deconv_dims, self.num_gpu)
 
             self.D_A = DiscriminatorCNN(
                     a_channel, 1, conv_dims, self.num_gpu)
