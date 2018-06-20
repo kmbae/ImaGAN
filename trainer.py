@@ -173,10 +173,15 @@ class Trainer(object):
 
         for step in trange(self.start_step, self.max_step):
             try:
-                x_A, x_B = A_loader.next(), B_loader.next()
+                x_A = A_loader.next()
             except StopIteration:
-                A_loader, B_loader = iter(self.a_data_loader), iter(self.b_data_loader)
-                x_A, x_B = A_loader.next(), B_loader.next()
+                A_loader = iter(self.a_data_loader)
+                x_A = A_loader.next()
+            try:
+                x_B = B_loader.next()
+            except StopIteration:
+                B_loader = iter(self.b_data_loader)
+                x_B = B_loader.next()
             if x_A.size(0) != x_B.size(0):
                 print("[!] Sampled dataset from A and B have different # of data. Try resampling...")
                 continue
@@ -187,11 +192,19 @@ class Trainer(object):
             real_tensor.data.resize_(batch_size).fill_(real_label)
             fake_tensor.data.resize_(batch_size).fill_(fake_label)
 
-            # update D network
+            # Concat input data
+            #xx_AB = torch.cat([x_A, x_B], dim=1)
+            #xx_BA = torch.cat([x_b, x_A], dim=1)
+
+            ## Update D network
             self.D_A.zero_grad()
             self.D_B.zero_grad()
-            x_AB = self.G_AB(x_A).detach()
-            x_BA = self.G_BA(x_B).detach()
+
+            x_AB = self.G_AB(x_A, x_B).detach()
+            x_BA = self.G_BA(x_B, x_A).detach()
+
+            # Concat generated data
+
 
             x_ABA = self.G_BA(x_AB).detach()
             x_BAB = self.G_AB(x_BA).detach()
@@ -219,14 +232,16 @@ class Trainer(object):
             self.G_AB.zero_grad()
             self.G_BA.zero_grad()
 
-            x_AB = self.G_AB(x_A)
-            x_BA = self.G_BA(x_B)
+            x_AB = self.G_AB(x_A, x_B)
+            x_BA = self.G_BA(x_B, x_A)
 
-            x_ABA = self.G_BA(x_AB)
-            x_BAB = self.G_AB(x_BA)
+            #x_ABA = self.G_BA(x_AB)
+            #x_BAB = self.G_AB(x_BA)
 
-            l_const_A = d(x_ABA, x_A)
-            l_const_B = d(x_BAB, x_B)
+            l_const_A = d(self.G_BA(x_AB,x_A), x_A) + d(self.G_BA(x_A,x_BA), x_A) + d(self.G_BA(x_AB,x_BA), x_A)
+            l_const_B = d(self.G_AB(x_B,x_AB), x_B) + d(self.G_AB(x_BA,x_B), x_B) + d(self.G_AB(x_BA,x_AB), x_B)
+            l_const_AB =d(self.G_AB(x_AB,x_B), x_AB) +d(self.G_AB(x_A,x_AB), x_AB) +d(self.G_AB(x_AB,x_AB), x_AB)
+            l_const_BA =d(self.G_BA(x_BA,x_A), x_BA) +d(self.G_BA(x_B,x_BA), x_BA) +d(self.G_BA(x_BA,x_BA), x_BA)
 
             if self.loss == "log_prob":
                 l_gan_A = bce(self.D_A(x_BA), real_tensor)
@@ -237,22 +252,23 @@ class Trainer(object):
             else:
                 raise Exception("[!] Unkown loss type: {}".format(self.loss))
 
-            l_g = l_gan_A + l_gan_B + l_const_A + l_const_B
+            l_g = l_gan_A + l_gan_B + l_const_A + l_const_B + l_const_AB + l_const_BA
 
             l_g.backward()
             optimizer_g.step()
 
             if step % self.log_step == 0:
                 print("[{}/{}] Loss_D: {:.4f} Loss_G: {:.4f}". \
-                      format(step, self.max_step, l_d.data[0], l_g.data[0]))
-
+                        format(step, self.max_step, l_d.data[0], l_g.data[0]))
                 print("[{}/{}] l_d_A_real: {:.4f} l_d_A_fake: {:.4f}, l_d_B_real: {:.4f}, l_d_B_fake: {:.4f}". \
-                      format(step, self.max_step, l_d_A_real.data[0], l_d_A_fake.data[0],
+                        format(step, self.max_step, l_d_A_real.data[0], l_d_A_fake.data[0],
                              l_d_B_real.data[0], l_d_B_fake.data[0]))
+                print("[{}/{}] l_const_A: {:.4f} l_const_B: {:.4f}, l_const_AB: {:.f}, l_const_BA: {:.f}". \
+                        format(step, self.max_step, l_const_A.data[0], l_const_B.data[0],
+                          l_const_AB.data[0], l_const_BA[0]))
+                print("[{}/{}] l_gan_A: {:.4f}, l_gan_B: {:.4f}". \
+                        format(step, self.max_step, l_gan_A.data[0], l_gan_B.data[0]))
 
-                print("[{}/{}] l_const_A: {:.4f} l_const_B: {:.4f}, l_gan_A: {:.4f}, l_gan_B: {:.4f}". \
-                      format(step, self.max_step, l_const_A.data[0], l_const_B.data[0],
-                             l_gan_A.data[0], l_gan_B.data[0]))
 
                 self.generate_with_A(valid_x_A, self.model_dir, idx=step)
                 self.generate_with_B(valid_x_B, self.model_dir, idx=step)

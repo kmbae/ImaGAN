@@ -31,8 +31,8 @@ class GeneratorCNN(nn.Module):
 
         self.layer_module = nn.ModuleList(self.layers)
 
-    def main(self, x):
-        out = x
+    def main(self, x, y):
+        out = torch.cat([x, y], dim=1)
         for layer in self.layer_module:
             out = layer(out)
         return out
