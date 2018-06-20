@@ -15,8 +15,11 @@ from data_loader import get_loader
 
 import ipdb
 from tensorboardX import SummaryWriter
+from datetime import datetime
 
-writer = SummaryWriter()
+tmp = datetime.now()
+
+writer = SummaryWriter('../runs/' + str(tmp))
 
 
 def weights_init(m):
