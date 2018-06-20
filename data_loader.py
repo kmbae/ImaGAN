@@ -59,8 +59,8 @@ class Dataset(torch.utils.data.Dataset):
         self.shape = list(Image.open(self.paths[0]).size) + [3]
 
         self.transform = transforms.Compose([
-            transforms.Scale(scale_size), 
-            transforms.ToTensor(), 
+            transforms.Scale(scale_size),
+            transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         ])
 
