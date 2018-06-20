@@ -14,6 +14,10 @@ from models import *
 from data_loader import get_loader
 
 import ipdb
+from tensorboardX import SummaryWriter
+
+writer = SummaryWriter()
+
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -270,7 +274,6 @@ class Trainer(object):
 
                 self.generate_with_A(valid_x_A, valid_x_B, self.model_dir, idx=step)
                 self.generate_with_B(valid_x_B, valid_x_A, self.model_dir, idx=step)
-
             if step % self.save_step == self.save_step - 1:
                 print("[*] Save models to {}...".format(self.model_dir))
 
@@ -289,7 +292,8 @@ class Trainer(object):
 
         vutils.save_image(x_AB.data, x_AB_path)
         print("[*] Samples saved: {}".format(x_AB_path))
-
+        writer.add_image('x_AB', x_AB, idx)
+        writer.add_image('x_ABA', x_ABA, idx)
         vutils.save_image(x_ABA.data, x_ABA_path)
         print("[*] Samples saved: {}".format(x_ABA_path))
 
@@ -303,6 +307,8 @@ class Trainer(object):
         vutils.save_image(x_BA.data, x_BA_path)
         print("[*] Samples saved: {}".format(x_BA_path))
 
+        writer.add_image('x_BA', x_BA, idx)
+        writer.add_image('x_BAB', x_BAB, idx)
         vutils.save_image(x_BAB.data, x_BAB_path)
         print("[*] Samples saved: {}".format(x_BAB_path))
 
