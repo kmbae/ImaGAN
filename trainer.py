@@ -277,6 +277,10 @@ class Trainer(object):
 
                 self.generate_with_A(valid_x_A, valid_x_B, self.model_dir, idx=step)
                 self.generate_with_B(valid_x_B, valid_x_A, self.model_dir, idx=step)
+                writer.add_scalars('loss_G', {'l_gan_A':l_gan_A,'l_gan_B':l_gan_B,'l_const_A':l_const_A,
+                    'l_const_B':l_const_B,'l_const_AB':l_const_AB,'l_const_BA':l_const_BA}, step)
+                writer.add_scalars('loss_D', {'l_d_A':l_d_A,'l_d_B':l_d_B}, step)
+
             if step % self.save_step == self.save_step - 1:
                 print("[*] Save models to {}...".format(self.model_dir))
 
