@@ -27,7 +27,7 @@ class GeneratorCNN(nn.Module):
             prev_dim = out_dim
 
         self.layers.append(nn.ConvTranspose2d(prev_dim, output_channel, 4, 2, 1, bias=False))
-        self.layers.append(nn.Tanh())
+        self.layers.append(nn.Sigmoid())#nn.Tanh())
 
         self.layer_module = nn.ModuleList(self.layers)
 

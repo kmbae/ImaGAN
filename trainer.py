@@ -192,6 +192,7 @@ class Trainer(object):
             if x_A.size(0) != x_B.size(0):
                 print("[!] Sampled dataset from A and B have different # of data. Try resampling...")
                 continue
+            #ipdb.set_trace()
 
             x_A, x_B = self._get_variable(x_A), self._get_variable(x_B)
 
