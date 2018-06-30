@@ -26,7 +26,11 @@ def main(config):
             data_path, batch_size, config.input_scale_size,
             config.num_worker, config.skip_pix2pix_processing)
 
-    trainer = Trainer(config, a_data_loader, b_data_loader)
+    a1_data_loader, b1_data_loader = get_loader(
+            '../data/edges2handbags', batch_size, config.input_scale_size,
+            config.num_worker, config.skip_pix2pix_processing)
+
+    trainer = Trainer(config, a_data_loader, b_data_loader, a1_data_loader, b1_data_loader)
 
     if config.is_train:
         save_config(config)

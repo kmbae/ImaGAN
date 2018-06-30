@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from glob import glob
-from PIL import Image
+from PIL import Image, ImageFilter
 from tqdm import tqdm
 
 import torch
@@ -46,6 +46,7 @@ def pix2pix_split_images(root):
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, root, scale_size, data_type, skip_pix2pix_processing=False):
         self.root = root
+        self.data_type = data_type
         if not os.path.exists(self.root):
             raise Exception("[!] {} not exists.".format(root))
 
@@ -66,6 +67,8 @@ class Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         image = Image.open(self.paths[index]).convert('RGB')
+        #if self.data_type=='B':
+        #    image = image.filter(ImageFilter.MinFilter(3))
         return self.transform(image)
 
     def __len__(self):
