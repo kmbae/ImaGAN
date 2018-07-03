@@ -24,7 +24,7 @@ net_arg.add_argument('--fc_hidden_dim', type=int, default=128, help='only for to
 # Data
 data_arg = add_argument_group('Data')
 data_arg.add_argument('--dataset', type=str, default='edges2shoes')
-data_arg.add_argument('--batch_size', type=int, default=200)
+data_arg.add_argument('--batch_size', type=int, default=32)
 data_arg.add_argument('--a_grayscale', type=str2bool, default=False)
 data_arg.add_argument('--b_grayscale', type=str2bool, default=False)
 data_arg.add_argument('--num_worker', type=int, default=12)
