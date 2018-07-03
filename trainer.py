@@ -9,6 +9,7 @@ import torch
 from torch import nn
 import torch.nn.parallel
 import torchvision.utils as vutils
+import numpy as np
 from torch.autograd import Variable
 from models import *
 from data_loader import get_loader
@@ -194,14 +195,19 @@ class Trainer(object):
             lr=self.lr, betas=(self.beta1, self.beta2))
 
         A_loader, B_loader = iter(self.a_data_loader), iter(self.b_data_loader)
-        valid_x_A, valid_x_B = self._get_variable(A_loader.next()), self._get_variable(B_loader.next())
+        valid_x_A, valid_x_B = torch.Tensor(np.load('../valid_x_A1.npy')), torch.Tensor(np.load('../valid_x_B1.npy'))
+        valid_x_A, valid_x_B = self._get_variable(valid_x_A), self._get_variable(valid_x_B)
+        #self._get_variable(A_loader.next()), self._get_variable(B_loader.next())
         A1_loader, B1_loader = iter(self.a1_data_loader), iter(self.b1_data_loader)
-        valid_x_A1, valid_x_B1 = self._get_variable(A1_loader.next()), self._get_variable(B1_loader.next())
+        valid_x_A1, valid_x_B1=torch.Tensor(np.load('../valid_x_A2.npy')), torch.Tensor(np.load('../valid_x_B2.npy'))
+        valid_x_A1, valid_x_B1 = self._get_variable(valid_x_A1), self._get_variable(valid_x_B1)
+        #self._get_variable(A1_loader.next()), self._get_variable(B1_loader.next())
+        #ipdb.set_trace()
 
-        vutils.save_image(valid_x_A.data[:16], '{}/valid_x_A.png'.format(self.model_dir))
-        vutils.save_image(valid_x_B.data[:16], '{}/valid_x_B.png'.format(self.model_dir))
-        vutils.save_image(valid_x_A1.data[:16], '{}/valid_x_A1.png'.format(self.model_dir))
-        vutils.save_image(valid_x_B1.data[:16], '{}/valid_x_B1.png'.format(self.model_dir))
+        vutils.save_image(valid_x_A.data, '{}/valid_x_A1.png'.format(self.model_dir))
+        vutils.save_image(valid_x_B.data, '{}/valid_x_B1.png'.format(self.model_dir))
+        vutils.save_image(valid_x_A1.data, '{}/valid_x_A2.png'.format(self.model_dir))
+        vutils.save_image(valid_x_B1.data, '{}/valid_x_B2.png'.format(self.model_dir))
 
         for step in trange(self.start_step, self.max_step):
             try:
@@ -226,6 +232,7 @@ class Trainer(object):
 
             x_A1, x_B1 = self._get_variable(x_A1), self._get_variable(x_B1)
             x_A2, x_B2 = self._get_variable(x_A2), self._get_variable(x_B2)
+            ipdb.set_trace()
 
             batch_size = x_A1.size(0)
             real_tensor.data.resize_(batch_size).fill_(real_label)
@@ -286,7 +293,7 @@ class Trainer(object):
             optimizer_d.step()
 
             ## Update DF network
-            self.D_F.zero_grad()
+            '''self.D_F.zero_grad()
 
             x_B1_A1 = self.F(x_A1)
             x_B2_A2 = self.F(x_A2)
@@ -314,7 +321,7 @@ class Trainer(object):
             l_f = l_d_A + l_d_B
 
             l_f.backward()
-            optimizer_df.step()
+            optimizer_df.step()'''
 
             # Update F network
             self.F.zero_grad()
@@ -333,31 +340,47 @@ class Trainer(object):
             # update G network
             self.G.zero_grad()
 
-            x_BA1 = self.F(x_A1).detach()
-            #x_BA2 = self.F(x_A2).detach()
+            x_B1A1 = self.F(x_A1).detach()
+            x_B2A2 = self.F(x_A2).detach()
 
-            x_A12 = self.G(x_BA1, x_A2)
-            #x_A21 = self.G(x_BA2, x_A1)
+            x_A1G = self.G(x_B1A1, x_A2)
+            x_A2G = self.G(x_B2A2, x_A1)
 
-            x_B12f = self.F(x_A12)
-            #x_B21f = self.F(x_A21)
+            x_B1AG = self.F(x_A1G)
+            x_B2AG = self.F(x_A2G)
 
-            l_const_A = d(self.G(x_B12f,x_A1), x_A1)# + d(self.G(x_BA1,x_A1.detach()), x_A1) + d(self.G(x_BA1,x_A21.detach()), x_A1)
-            #l_const_B = d(self.G(x_B21f,x_A2), x_A2)# + d(self.G(x_BA2,x_A2.detach()), x_A2) + d(self.G(x_BA2,x_A12.detach()), x_A2)
-            l_const_AB= d(x_B12f, x_B1)# + d(self.G(x_AB,x_AB), x_ABd) + d(self.G(x_AB,x_B), x_ABd))
-            #l_const_BA= d(x_B21f, x_B2)# + d(self.G(x_BA,x_BA), x_BAd) + d(self.G(x_BA,x_A), x_BAd))
+            l_const_A = d(self.G(x_B1AG,x_A1), x_A1)# + d(self.G(x_B1A1,x_A1), x_A1)#+ d(self.G(x_BA1,x_A21.detach()), x_A1)
+            l_const_B = d(self.G(x_B2AG,x_A2), x_A2)# + d(self.G(x_BA2,x_A2.detach()), x_A2) + d(self.G(x_BA2,x_A12.detach()), x_A2)
+            l_const_AB = d(x_B1AG, x_B1)# + d(self.G(x_AB,x_AB), x_ABd) + d(self.G(x_AB,x_B), x_ABd))
+            l_const_BA = d(x_B2AG, x_B2)# + d(self.G(x_BA,x_BA), x_BAd) + d(self.G(x_BA,x_A), x_BAd))
             #l_const_B12 = d(self.G(x_B1, x_B2), x_B1) + d(self.G(x_B2, x_B1), x_B2)
 
+            x_B1A1G = self.F(x_A1G.detach())
+            x_A1GA1 = self.G(x_B1A1G, x_A1)
+            x_B1A1G = self.F(x_A1GA1)
+            x_A1GA1G = self.G(x_B1A1G, x_A2)
+
+            x_B2A2G = self.F(x_A2G.detach())
+            x_A2GA2 = self.G(x_B2A2G, x_A2)
+            x_B2A2G = self.F(x_A2GA2)
+            x_A2GA2G = self.G(x_B2A2G, x_A1)
+            l_const_A += d(x_A1GA1G, x_A1G.detach())
+            l_const_AB += d(x_B1AG, x_B1)
+            l_const_A += d(x_A2GA2G, x_A2G.detach())
+            l_const_AB += d(x_B2A2G, x_B2)
+
             if self.loss == "log_prob":
-                l_gan_A = bce(self.D_S(x_A12), real_tensor) + bce(self.D_F(x_B12f, x_B1), real_tensor)
-                #l_gan_B = bce(self.D_H(x_A21), real_tensor) + bce(self.D_F(x_B21f, x_B2), real_tensor)
+                l_gan_A = bce(self.D_S(x_A12), real_tensor) + bce(self.D_S(x_A1GA1), real_tensor)
+                # + bce(self.D_F(x_B12f, x_B1), real_tensor)
+                l_gan_B = bce(self.D_H(x_A21), real_tensor) + bce(self.D_H(x_A2GA2), real_tensor)
+                # + bce(self.D_F(x_B21f, x_B2), real_tensor)
             elif self.loss == "least_square":
                 l_gan_A = 0.5 * torch.mean((self.D_S(x_A12) - 1)**2)
                 l_gan_B = 0.5 * torch.mean((self.D_H(x_A21) - 1)**2)
             else:
                 raise Exception("[!] Unkown loss type: {}".format(self.loss))
 
-            l_g = l_gan_A + l_const_A + l_const_AB
+            l_g = l_gan_A + l_gan_B + l_const_A + l_const_AB + l_const_BA
 
             l_g.backward()
             optimizer_g.step()
