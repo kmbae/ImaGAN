@@ -17,8 +17,8 @@ def makedirs(path):
 def pix2pix_split_images(root):
     paths = glob(os.path.join(root, "train/*"))
 
-    a_path = os.path.join(root, "A")
-    b_path = os.path.join(root, "B")
+    a_path = os.path.join(root, "B")
+    b_path = os.path.join(root, "A")
 
     makedirs(a_path)
     makedirs(b_path)

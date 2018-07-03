@@ -232,7 +232,6 @@ class Trainer(object):
 
             x_A1, x_B1 = self._get_variable(x_A1), self._get_variable(x_B1)
             x_A2, x_B2 = self._get_variable(x_A2), self._get_variable(x_B2)
-            ipdb.set_trace()
 
             batch_size = x_A1.size(0)
             real_tensor.data.resize_(batch_size).fill_(real_label)
@@ -351,8 +350,8 @@ class Trainer(object):
 
             l_const_A = d(self.G(x_B1AG,x_A1), x_A1)# + d(self.G(x_B1A1,x_A1), x_A1)#+ d(self.G(x_BA1,x_A21.detach()), x_A1)
             l_const_B = d(self.G(x_B2AG,x_A2), x_A2)# + d(self.G(x_BA2,x_A2.detach()), x_A2) + d(self.G(x_BA2,x_A12.detach()), x_A2)
-            l_const_AB = d(x_B1AG, x_B1)# + d(self.G(x_AB,x_AB), x_ABd) + d(self.G(x_AB,x_B), x_ABd))
-            l_const_BA = d(x_B2AG, x_B2)# + d(self.G(x_BA,x_BA), x_BAd) + d(self.G(x_BA,x_A), x_BAd))
+            l_const_AB = d(x_B1AG, x_B1A1)# + d(self.G(x_AB,x_AB), x_ABd) + d(self.G(x_AB,x_B), x_ABd))
+            l_const_BA = d(x_B2AG, x_B2A2)# + d(self.G(x_BA,x_BA), x_BAd) + d(self.G(x_BA,x_A), x_BAd))
             #l_const_B12 = d(self.G(x_B1, x_B2), x_B1) + d(self.G(x_B2, x_B1), x_B2)
 
             x_B1A1G = self.F(x_A1G.detach())
@@ -365,14 +364,14 @@ class Trainer(object):
             x_B2A2G = self.F(x_A2GA2)
             x_A2GA2G = self.G(x_B2A2G, x_A1)
             l_const_A += d(x_A1GA1G, x_A1G.detach())
-            l_const_AB += d(x_B1AG, x_B1)
+            l_const_AB += d(x_B1A1G, x_B1A1)
             l_const_A += d(x_A2GA2G, x_A2G.detach())
-            l_const_AB += d(x_B2A2G, x_B2)
+            l_const_AB += d(x_B2A2G, x_B2A2)
 
             if self.loss == "log_prob":
-                l_gan_A = bce(self.D_S(x_A12), real_tensor) + bce(self.D_S(x_A1GA1), real_tensor)
+                l_gan_A = bce(self.D_S(x_A1G), real_tensor) + bce(self.D_S(x_A1GA1), real_tensor)
                 # + bce(self.D_F(x_B12f, x_B1), real_tensor)
-                l_gan_B = bce(self.D_H(x_A21), real_tensor) + bce(self.D_H(x_A2GA2), real_tensor)
+                l_gan_B = bce(self.D_H(x_A2G), real_tensor) + bce(self.D_H(x_A2GA2), real_tensor)
                 # + bce(self.D_F(x_B21f, x_B2), real_tensor)
             elif self.loss == "least_square":
                 l_gan_A = 0.5 * torch.mean((self.D_S(x_A12) - 1)**2)
