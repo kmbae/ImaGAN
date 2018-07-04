@@ -269,12 +269,14 @@ class Trainer(object):
             x_A12 = self.G(self.F(x_A1), x_A2).detach()
             x_A21 = self.G(self.F(x_A2), x_A1).detach()
 
+            x_A121 = self.G(self.F(x_A12), x_A1).detach()
+            x_A212 = self.G(self.F(x_A21), x_A2).detach()
             #x_ABA = self.G_BA(x_AB).detach()
             #x_BAB = self.G_AB(x_BA).detach()
 
             if self.loss == "log_prob":
-                l_d_A_real, l_d_A_fake = bce(self.D_S(x_A1), real_tensor), bce(self.D_S(x_A12), fake_tensor)
-                l_d_B_real, l_d_B_fake = bce(self.D_H(x_A2), real_tensor), bce(self.D_H(x_A21), fake_tensor)
+                l_d_A_real, l_d_A_fake, tmp1 = bce(self.D_S(x_A1), real_tensor), bce(self.D_S(x_A12), fake_tensor), bce(self.D_S(x_A121), fake_tensor)
+                l_d_B_real, l_d_B_fake, tmp2 = bce(self.D_H(x_A2), real_tensor), bce(self.D_H(x_A21), fake_tensor), bce(self.D_H(x_A212), fake_tensor)
             elif self.loss == "least_square":
                 l_d_A_real, l_d_A_fake = \
                     0.5 * torch.mean((self.D_A(x_A) - 1)**2), 0.5 * torch.mean((self.D_A(x_BA))**2)
@@ -283,8 +285,8 @@ class Trainer(object):
             else:
                 raise Exception("[!] Unkown loss type: {}".format(self.loss))
 
-            l_d_A = l_d_A_real + l_d_A_fake
-            l_d_B = l_d_B_real + l_d_B_fake
+            l_d_A = l_d_A_real + l_d_A_fake + tmp1
+            l_d_B = l_d_B_real + l_d_B_fake + tmp2
 
             l_d = l_d_A + l_d_B
 
@@ -379,7 +381,7 @@ class Trainer(object):
             else:
                 raise Exception("[!] Unkown loss type: {}".format(self.loss))
 
-            l_g = l_gan_A + l_gan_B + l_const_A + l_const_AB + l_const_BA
+            l_g = l_gan_A + l_gan_B + l_const_A + l_const_B + l_const_AB + l_const_BA
 
             l_g.backward()
             optimizer_g.step()
@@ -419,7 +421,7 @@ class Trainer(object):
                         format(step, self.max_step, l_gan_A.data[0]))
 
                 self.generate_with_A(valid_x_A, valid_x_A1, self.model_dir, idx=step)
-                #self.generate_with_B(valid_x_A1, valid_x_A, self.model_dir, idx=step)
+                self.generate_with_B(valid_x_A1, valid_x_A, self.model_dir, idx=step)
                 writer.add_scalars('loss_G', {'l_g':l_g,'l_gan_A':l_gan_A,'l_const_A':l_const_A,
                     'l_f':l_f, 'l_const_AB': l_const_AB},
                     step)
@@ -435,42 +437,47 @@ class Trainer(object):
                 torch.save(self.D_S.state_dict(), '{}/D_A_{}.pth'.format(self.model_dir, step))
                 torch.save(self.D_H.state_dict(), '{}/D_B_{}.pth'.format(self.model_dir, step))
 
-    def generate_with_A(self, inputs, input_ref, path, idx=None):
+    def generate_with_A(self, inputs, input_ref, path, idx=None, tf_board=True):
         x_AB = self.F(inputs)
         x_ABA = self.G(x_AB, input_ref)
         x_ABAf = self.F(x_ABA)
+        x_ABAB = self.G(x_ABAf, inputs)
 
-        x_AB_path = '{}/{}_x_AB.png'.format(path, idx)
+        x_AB_path = '{}/{}_x_A1G.png'.format(path, idx)
         #x_ABA_path = '{}/{}_x_ABA.png'.format(path, idx)
 
         vutils.save_image(x_ABA.data, x_AB_path)
         print("[*] Samples saved: {}".format(x_AB_path))
-        writer.add_image('x_A1f', x_AB[:16], idx)
-        writer.add_image('x_A1valid', inputs[:16], idx)
-        writer.add_image('x_A1_2', x_ABA[:16], idx)
-        writer.add_image('x_B1_2f', x_ABAf[:16], idx)
-        #writer.add_image('x_ABA', x_ABA, idx)
-        #vutils.save_image(x_ABA.data, x_ABA_path)
-        #print("[*] Samples saved: {}".format(x_ABA_path))
+        if tf_board:
+            writer.add_image('x_A1f', x_AB[:16], idx)
+            writer.add_image('x_A1valid', inputs[:16], idx)
+            writer.add_image('x_A1_2', x_ABA[:16], idx)
+            writer.add_image('x_B1_2f', x_ABAf[:16], idx)
+            writer.add_image('x_A1_rec', x_ABAB[:16], idx)
+            #writer.add_image('x_ABA', x_ABA, idx)
+            #vutils.save_image(x_ABA.data, x_ABA_path)
+            #print("[*] Samples saved: {}".format(x_ABA_path))
 
-    def generate_with_B(self, inputs, input_ref, path, idx=None):
+    def generate_with_B(self, inputs, input_ref, path, idx=None, tf_board=True):
         x_BA = self.F(inputs)
         x_BAB = self.G(x_BA, input_ref)
         x_ABAf = self.F(x_BAB)
+        x_ABAB = self.G(x_ABAf, inputs)
 
         x_BA_path = '{}/{}_x_BA.png'.format(path, idx)
         #x_BAB_path = '{}/{}_x_BAB.png'.format(path, idx)
 
         vutils.save_image(x_BAB.data, x_BA_path)
         print("[*] Samples saved: {}".format(x_BA_path))
-
-        writer.add_image('x_A2f', x_BA[:16], idx)
-        writer.add_image('x_A2valid', inputs[:16], idx)
-        writer.add_image('x_A2_1', x_BAB[:16], idx)
-        writer.add_image('x_B1_1f', x_ABAf[:16], idx)
-        #writer.add_image('x_BAB', x_BAB, idx)
-        #vutils.save_image(x_BAB.data, x_BAB_path)
-        #print("[*] Samples saved: {}".format(x_BAB_path))
+        if tf_board:
+            writer.add_image('x_A2f', x_BA[:16], idx)
+            writer.add_image('x_A2valid', inputs[:16], idx)
+            writer.add_image('x_A2_1', x_BAB[:16], idx)
+            writer.add_image('x_B1_1f', x_ABAf[:16], idx)
+            writer.add_image('x_A2_rec', x_ABAB[:16], idx)
+            #writer.add_image('x_BAB', x_BAB, idx)
+            #vutils.save_image(x_BAB.data, x_BAB_path)
+            #print("[*] Samples saved: {}".format(x_BAB_path))
 
     def generate_infinitely(self, inputs, path, input_type, count=10, nrow=2, idx=None):
         if input_type.lower() == "a":
@@ -488,11 +495,19 @@ class Trainer(object):
 
     def test(self):
         batch_size = self.config.sample_per_image
-        A_loader, B_loader = iter(self.a_data_loader), iter(self.b_data_loader)
+        x_A1, x_B1 = torch.Tensor(np.load('../valid_x_A1.npy')), torch.Tensor(np.load('../valid_x_B1.npy'))
+        x_A1, x_B1 = self._get_variable(x_A1), self._get_variable(x_B1)
+        x_A2, x_B2=torch.Tensor(np.load('../valid_x_A2.npy')), torch.Tensor(np.load('../valid_x_B2.npy'))
+        x_A2, x_B2 = self._get_variable(x_A2), self._get_variable(x_B2)
 
         test_dir = os.path.join(self.model_dir, 'test')
         if not os.path.exists(test_dir):
             os.makedirs(test_dir)
+
+        self.generate_with_A(x_A1, x_A2, test_dir, idx=step)
+        self.generate_with_B(x_A2, x_A1, test_dir, idx=step)
+
+        return 0
 
         step = 0
         while True:
