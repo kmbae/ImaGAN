@@ -28,6 +28,8 @@ data_arg.add_argument('--batch_size', type=int, default=200)
 data_arg.add_argument('--a_grayscale', type=str2bool, default=False)
 data_arg.add_argument('--b_grayscale', type=str2bool, default=False)
 data_arg.add_argument('--num_worker', type=int, default=12)
+data_arg.add_argument('--dataset_A1', type=str, default='../data/edges2handbags')
+data_arg.add_argument('--dataset_A2', type=str, default='../data/edges2shoes')
 
 # Training / test parameters
 train_arg = add_argument_group('Training')

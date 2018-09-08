@@ -6,6 +6,8 @@ from tqdm import tqdm
 
 import torch
 from torchvision import transforms
+#from skimage import feature
+#from skimage.color import rgb2gray
 
 PIX2PIX_DATASETS = [
     'facades', 'cityscapes', 'maps', 'edges2shoes', 'edges2handbags']
@@ -67,9 +69,12 @@ class Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         image = Image.open(self.paths[index]).convert('RGB')
+        edges = Image.open(self.paths[index].replace('/A','/B1')).convert('RGB')
+        #edges = image.filter(ImageFilter.FIND_EDGES)
+
         #if self.data_type=='B':
         #    image = image.filter(ImageFilter.MinFilter(3))
-        return self.transform(image)
+        return {'image':self.transform(image), 'edges':self.transform(edges)}
 
     def __len__(self):
         return len(self.paths)

@@ -17,7 +17,7 @@ from data_loader import get_loader
 import ipdb
 from tensorboardX import SummaryWriter
 from datetime import datetime
-
+import torchvision
 tmp = datetime.now()
 
 writer = SummaryWriter('../runs/' + str(tmp))
@@ -194,13 +194,35 @@ class Trainer(object):
             self.G.parameters(),
             lr=self.lr, betas=(self.beta1, self.beta2))
 
-        A_loader, B_loader = iter(self.a_data_loader), iter(self.b_data_loader)
-        valid_x_A, valid_x_B = torch.Tensor(np.load('../valid_x_A1.npy')), torch.Tensor(np.load('../valid_x_B1.npy'))
-        valid_x_A, valid_x_B = self._get_variable(valid_x_A), self._get_variable(valid_x_B)
+        #A_loader, B_loader = iter(self.a_data_loader), iter(self.b_data_loader)
+        A_loader = iter(self.a_data_loader)
+        #valid_x_A, valid_x_B = torch.Tensor(np.load('../valid_x_A2.npy')), torch.Tensor(np.load('../valid_x_B2.npy'))
         #self._get_variable(A_loader.next()), self._get_variable(B_loader.next())
-        A1_loader, B1_loader = iter(self.a1_data_loader), iter(self.b1_data_loader)
-        valid_x_A1, valid_x_B1=torch.Tensor(np.load('../valid_x_A2.npy')), torch.Tensor(np.load('../valid_x_B2.npy'))
-        valid_x_A1, valid_x_B1 = self._get_variable(valid_x_A1), self._get_variable(valid_x_B1)
+        #A1_loader, B1_loader = iter(self.a1_data_loader), iter(self.b1_data_loader)
+        A1_loader = iter(self.a1_data_loader)
+        #valid_x_A1, valid_x_B1=torch.Tensor(np.load('../valid_x_A2_chair.npy')), torch.Tensor(np.load('../valid_x_B2_chair.npy'))
+        try:
+            valid_x_A, valid_x_B = torch.Tensor(np.load(self.config.dataset_A1+'_A.npy')), torch.Tensor(np.load(self.config.dataset_A1+'_B.npy'))
+            valid_x_A, valid_x_B = self._get_variable(valid_x_A), self._get_variable(valid_x_B)
+            valid_x_A1, valid_x_B1=torch.Tensor(np.load(self.config.dataset_A2+'_A.npy')), torch.Tensor(np.load(self.config.dataset_A2+'_B.npy'))
+            valid_x_A1, valid_x_B1 = self._get_variable(valid_x_A1), self._get_variable(valid_x_B1)
+        except:
+            print('Cannot load validation file. Creating new validation file')
+            x_A1 = A_loader.next()
+            x_A2 = A1_loader.next()
+            x_A1, x_B1 = x_A1['image'], x_A1['edges']
+            x_A2, x_B2 = x_A2['image'], x_A2['edges']
+            np.save(self.config.dataset_A1+'_A.npy',np.array(x_A1))
+            np.save(self.config.dataset_A1+'_B.npy',np.array(x_B1))
+            np.save(self.config.dataset_A2+'_A.npy',np.array(x_A2))
+            np.save(self.config.dataset_A2+'_B.npy',np.array(x_B2))
+
+            valid_x_A, valid_x_B = torch.Tensor(np.load(self.config.dataset_A1+'_A.npy')), torch.Tensor(np.load(self.config.dataset_A1+'_B.npy'))
+            valid_x_A, valid_x_B = self._get_variable(valid_x_A), self._get_variable(valid_x_B)
+            valid_x_A1, valid_x_B1=torch.Tensor(np.load(self.config.dataset_A2+'_A.npy')), torch.Tensor(np.load(self.config.dataset_A2+'_B.npy'))
+            valid_x_A1, valid_x_B1 = self._get_variable(valid_x_A1), self._get_variable(valid_x_B1)
+
+
         #self._get_variable(A1_loader.next()), self._get_variable(B1_loader.next())
         #ipdb.set_trace()
 
@@ -212,20 +234,23 @@ class Trainer(object):
         for step in trange(self.start_step, self.max_step):
             try:
                 x_A1 = A_loader.next()
-                x_B1 = B_loader.next()
+                #x_B1 = B_loader.next()
             except StopIteration:
                 A_loader = iter(self.a_data_loader)
-                B_loader = iter(self.b_data_loader)
+                #B_loader = iter(self.b_data_loader)
                 x_A1 = A_loader.next()
-                x_B1 = B_loader.next()
+                #x_B1 = B_loader.next()
             try:
                 x_A2 = A1_loader.next()
-                x_B2 = B1_loader.next()
+                #x_B2 = B1_loader.next()
             except StopIteration:
                 A1_loader = iter(self.a1_data_loader)
-                B1_loader = iter(self.b1_data_loader)
+                #B1_loader = iter(self.b1_data_loader)
                 x_A2 = A1_loader.next()
-                x_B2 = B1_loader.next()
+                #x_B2 = B1_loader.next()
+
+            x_A1, x_B1 = x_A1['image'], x_A1['edges']
+            x_A2, x_B2 = x_A2['image'], x_A2['edges']
             if x_A1.size(0) != x_B1.size(0) or x_A2.size(0) != x_B2.size(0) or x_A1.size(0) != x_A2.size(0):
                 print("[!] Sampled dataset from A and B have different # of data. Try resampling...")
                 continue
@@ -422,17 +447,17 @@ class Trainer(object):
 
                 self.generate_with_A(valid_x_A, valid_x_A1, self.model_dir, idx=step)
                 self.generate_with_B(valid_x_A1, valid_x_A, self.model_dir, idx=step)
-                writer.add_scalars('loss_G', {'l_g':l_g,'l_gan_A':l_gan_A,'l_const_A':l_const_A,
-                    'l_f':l_f, 'l_const_AB': l_const_AB},
+                writer.add_scalars('loss_G', {'l_g':l_g,'l_gan_A':l_gan_A,
+                    'l_f':l_f},
                     step)
+                writer.add_scalars('loss_F', {'l_const_A':l_const_A, 'l_const_AB': l_const_AB}, step)
                     #'l_const_B':l_const_B,'l_const_AB':l_const_AB,'l_const_BA':l_const_BA}, step)
                 writer.add_scalars('loss_D', {'l_d_A':l_d_A,'l_d_B':l_d_B}, step)
-
-            if step % self.save_step == self.save_step - 1:
+            if step % self.save_step == 0:
                 print("[*] Save models to {}...".format(self.model_dir))
 
-                torch.save(self.G.state_dict(), '{}/G_AB_{}.pth'.format(self.model_dir, step))
-                torch.save(self.F.state_dict(), '{}/G_BA_{}.pth'.format(self.model_dir, step))
+                torch.save(self.G.state_dict(), '{}/G_{}.pth'.format(self.model_dir, step))
+                torch.save(self.F.state_dict(), '{}/F_{}.pth'.format(self.model_dir, step))
 
                 torch.save(self.D_S.state_dict(), '{}/D_A_{}.pth'.format(self.model_dir, step))
                 torch.save(self.D_H.state_dict(), '{}/D_B_{}.pth'.format(self.model_dir, step))
@@ -447,6 +472,13 @@ class Trainer(object):
         #x_ABA_path = '{}/{}_x_ABA.png'.format(path, idx)
 
         vutils.save_image(x_ABA.data, x_AB_path)
+        if not os.path.isdir('{}/{}_A1'.format(path, idx)):
+            os.makedirs('{}/{}_A1'.format(path, idx))
+        for i in range(x_ABA.size(0)):
+            tmp = x_ABA[i].detach().cpu()
+            tmp = torchvision.transforms.ToPILImage()(tmp)
+            tmp.save('{}/{}_A1/{}.png'.format(path, idx, i))
+
         print("[*] Samples saved: {}".format(x_AB_path))
         if tf_board:
             writer.add_image('x_A1f', x_AB[:16], idx)
@@ -468,6 +500,13 @@ class Trainer(object):
         #x_BAB_path = '{}/{}_x_BAB.png'.format(path, idx)
 
         vutils.save_image(x_BAB.data, x_BA_path)
+        if not os.path.isdir('{}/{}_A2'.format(path, idx)):
+            os.makedirs('{}/{}_A2'.format(path, idx))
+        for i in range(x_BAB.size(0)):
+            tmp = x_BAB[i].detach().cpu()
+            tmp = torchvision.transforms.ToPILImage()(tmp)
+            tmp.save('{}/{}_A2/{}.png'.format(path, idx, i))
+
         print("[*] Samples saved: {}".format(x_BA_path))
         if tf_board:
             writer.add_image('x_A2f', x_BA[:16], idx)

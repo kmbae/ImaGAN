@@ -23,11 +23,11 @@ def main(config):
         batch_size = config.sample_per_image
 
     a_data_loader, b_data_loader = get_loader(
-            data_path, batch_size, config.input_scale_size,
+            config.dataset_A1, batch_size, config.input_scale_size,
             config.num_worker, config.skip_pix2pix_processing)
 
     a1_data_loader, b1_data_loader = get_loader(
-            '../data/edges2handbags', batch_size, config.input_scale_size,
+            config.dataset_A2, batch_size, config.input_scale_size,
             config.num_worker, config.skip_pix2pix_processing)
 
     trainer = Trainer(config, a_data_loader, b_data_loader, a1_data_loader, b1_data_loader)
