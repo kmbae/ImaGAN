@@ -208,6 +208,7 @@ class Trainer(object):
             valid_x_A1, valid_x_B1 = self._get_variable(valid_x_A1), self._get_variable(valid_x_B1)
         except:
             print('Cannot load validation file. Validation data not created')
+            assert 1
             '''
             x_A1 = A_loader.next()
             x_A2 = A1_loader.next()
