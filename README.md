@@ -9,4 +9,9 @@
 
 ## Start training
 
-run main.py
+    $ python main.py
+
+## Requirements
+* pytorch 0.4.2
+* tensorboardX
+* tqdm
