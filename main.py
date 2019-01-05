@@ -22,15 +22,15 @@ def main(config):
             data_path = config.test_data_path
         batch_size = config.sample_per_image
 
-    a_data_loader, b_data_loader = get_loader(
+    a_data_loader = get_loader(
             config.dataset_A1, batch_size, config.input_scale_size,
             config.num_worker, config.skip_pix2pix_processing)
 
-    a1_data_loader, b1_data_loader = get_loader(
+    a1_data_loader = get_loader(
             config.dataset_A2, batch_size, config.input_scale_size,
             config.num_worker, config.skip_pix2pix_processing)
 
-    trainer = Trainer(config, a_data_loader, b_data_loader, a1_data_loader, b1_data_loader)
+    trainer = Trainer(config, a_data_loader, a1_data_loader)
 
     if config.is_train:
         save_config(config)

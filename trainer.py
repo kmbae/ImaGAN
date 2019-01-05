@@ -32,13 +32,13 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 class Trainer(object):
-    def __init__(self, config, a_data_loader, b_data_loader, a1_data_loader, b1_data_loader):
+    def __init__(self, config, a_data_loader, a1_data_loader):
         self.config = config
 
         self.a_data_loader = a_data_loader
-        self.b_data_loader = b_data_loader
+        #self.b_data_loader = b_data_loader
         self.a1_data_loader = a1_data_loader
-        self.b1_data_loader = b1_data_loader
+        #self.b1_data_loader = b1_data_loader
 
         self.num_gpu = config.num_gpu
         self.dataset = config.dataset
@@ -90,7 +90,7 @@ class Trainer(object):
             self.D_B = DiscriminatorFC(2, 1, [config.fc_hidden_dim] * config.d_num_layer)
         else:
             a_height, a_width, a_channel = self.a_data_loader.shape
-            b_height, b_width, b_channel = self.b_data_loader.shape
+            b_height, b_width, b_channel = self.a1_data_loader.shape
 
             if self.cnn_type == 0:
                 #conv_dims, deconv_dims = [64, 128, 256, 512], [512, 256, 128, 64]
@@ -253,6 +253,10 @@ class Trainer(object):
 
             x_A1, x_B1 = x_A1['image'], x_A1['edges']
             x_A2, x_B2 = x_A2['image'], x_A2['edges']
+            writer.add_image('x_A1', x_A1[:16],step)
+            writer.add_image('x_A2', x_A2[:16],step)
+            writer.add_image('x_B1', x_B1[:16],step)
+            writer.add_image('x_B2', x_B2[:16],step)
             if x_A1.size(0) != x_B1.size(0) or x_A2.size(0) != x_B2.size(0) or x_A1.size(0) != x_A2.size(0):
                 print("[!] Sampled dataset from A and B have different # of data. Try resampling...")
                 continue

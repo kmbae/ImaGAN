@@ -123,18 +123,18 @@ class Dataset(torch.utils.data.Dataset):
 
 def get_loader(root, batch_size, scale_size, num_workers=2,
                skip_pix2pix_processing=False, shuffle=True):
-    a_data_set, b_data_set = \
-        Dataset(root, scale_size, "A", skip_pix2pix_processing), \
-        Dataset(root, scale_size, "B", skip_pix2pix_processing)
+    a_data_set = \
+        Dataset(root, scale_size, "A", skip_pix2pix_processing)#, \
+        #Dataset(root, scale_size, "B", skip_pix2pix_processing)
     a_data_loader = torch.utils.data.DataLoader(dataset=a_data_set,
                                                 batch_size=batch_size,
                                                 shuffle=True,
                                                 num_workers=num_workers)
-    b_data_loader = torch.utils.data.DataLoader(dataset=b_data_set,
-                                                batch_size=batch_size,
-                                                shuffle=True,
-                                                num_workers=num_workers)
+    #b_data_loader = torch.utils.data.DataLoader(dataset=b_data_set,
+    #                                            batch_size=batch_size,
+    #                                            shuffle=True,
+    #                                            num_workers=num_workers)
     a_data_loader.shape = a_data_set.shape
-    b_data_loader.shape = b_data_set.shape
+    #b_data_loader.shape = b_data_set.shape
 
-    return a_data_loader, b_data_loader
+    return a_data_loader#, b_data_loader
