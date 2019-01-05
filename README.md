@@ -7,11 +7,11 @@ This code is a fork from the code for "Learning to Discover Cross-Domain Relatio
 - `edges2shoes`: 50k training images from [UT Zappos50K dataset](http://vision.cs.utexas.edu/projects/finegrained/utzap50k/).
 - `edges2handbags`: 137K Amazon Handbag images from [iGAN project](https://github.com/junyanz/iGAN).
 
-## Start training
-
-    $ python main.py
-
 ## Requirements
 
     $ pip install -r requirements.txt
 
+
+## Start training
+
+    $ python main.py
