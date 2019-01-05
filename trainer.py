@@ -207,7 +207,8 @@ class Trainer(object):
             valid_x_A1, valid_x_B1=torch.Tensor(np.load(self.config.dataset_A2+'_A.npy')), torch.Tensor(np.load(self.config.dataset_A2+'_B.npy'))
             valid_x_A1, valid_x_B1 = self._get_variable(valid_x_A1), self._get_variable(valid_x_B1)
         except:
-            print('Cannot load validation file. Creating new validation file')
+            print('Cannot load validation file. Validation data not created')
+            '''
             x_A1 = A_loader.next()
             x_A2 = A1_loader.next()
             x_A1, x_B1 = x_A1['image'], x_A1['edges']
@@ -221,7 +222,7 @@ class Trainer(object):
             valid_x_A, valid_x_B = self._get_variable(valid_x_A), self._get_variable(valid_x_B)
             valid_x_A1, valid_x_B1=torch.Tensor(np.load(self.config.dataset_A2+'_A.npy')), torch.Tensor(np.load(self.config.dataset_A2+'_B.npy'))
             valid_x_A1, valid_x_B1 = self._get_variable(valid_x_A1), self._get_variable(valid_x_B1)
-
+            '''
 
         #self._get_variable(A1_loader.next()), self._get_variable(B1_loader.next())
         #ipdb.set_trace()
@@ -434,16 +435,16 @@ class Trainer(object):
 
             if step % self.log_step == 0:
                 print("[{}/{}] Loss_D: {:.4f} Loss_G: {:.4f}". \
-                        format(step, self.max_step, l_d.data[0], l_g.data[0]))
+                        format(step, self.max_step, l_d.item(), l_g.item()))
                 print("[{}/{}] l_d_A_real: {:.4f} l_d_A_fake: {:.4f}, l_d_B_real: {:.4f}, l_d_B_fake: {:.4f}". \
-                        format(step, self.max_step, l_d_A_real.data[0], l_d_A_fake.data[0],
-                             l_d_B_real.data[0], l_d_B_fake.data[0]))
+                        format(step, self.max_step, l_d_A_real.item(), l_d_A_fake.item(),
+                             l_d_B_real.item(), l_d_B_fake.item()))
                 print("[{}/{}] l_const_A: {:.4f} l_const_B: ". \
-                        format(step, self.max_step, l_const_A.data[0]))
+                        format(step, self.max_step, l_const_A.item()))
                 #print("[{}/{}] l_const_AB: {:.4f}, l_const_BA: {:.4f}". \
                 #        format(step, self.max_step,  l_const_AB.data[0], l_const_BA.data[0]))
                 print("[{}/{}] l_gan_A: {:.4f}, l_gan_B: ". \
-                        format(step, self.max_step, l_gan_A.data[0]))
+                        format(step, self.max_step, l_gan_A.item()))
 
                 self.generate_with_A(valid_x_A, valid_x_A1, self.model_dir, idx=step)
                 self.generate_with_B(valid_x_A1, valid_x_A, self.model_dir, idx=step)
