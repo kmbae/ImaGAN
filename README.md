@@ -1,5 +1,5 @@
 # ImaGAN
-
+This code is a fork from the code for "Learning to Discover Cross-Domain Relations with Generative Adversarial Networks" by [carpedm20](https://github.com/carpedm20) available [here](https://github.com/carpedm20/DiscoGAN-pytorch).
 ## Download datasets (from [pix2pix](https://github.com/phillipi/pix2pix)) with:
 
     $ bash ./data/download_dataset.sh dataset_name
@@ -12,6 +12,6 @@
     $ python main.py
 
 ## Requirements
-* pytorch 0.4.2
-* tensorboardX
-* tqdm
+
+    $ pip install -r requirements.txt
+
