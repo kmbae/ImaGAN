@@ -16,6 +16,35 @@ def makedirs(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
+def pix2pix_split_images_val(root):
+    paths = glob(os.path.join(root, "val/*"))
+
+    a_path = os.path.join(root, "B_val")
+    b_path = os.path.join(root, "A_val")
+
+    makedirs(a_path)
+    makedirs(b_path)
+
+    for path in tqdm(paths, desc="pix2pix processing"):
+        filename = os.path.basename(path)
+
+        a_image_path = os.path.join(a_path, filename)
+        b_image_path = os.path.join(b_path, filename)
+
+        if os.path.exists(a_image_path) and os.path.exists(b_image_path):
+            continue
+
+        image = Image.open(os.path.join(path)).convert('RGB')
+        data = np.array(image)
+
+        height, width, channel = data.shape
+
+        a_image = Image.fromarray(data[:,:width/2].astype(np.uint8))
+        b_image = Image.fromarray(data[:,width/2:].astype(np.uint8))
+
+        a_image.save(a_image_path)
+        b_image.save(b_image_path)
+
 def pix2pix_split_images(root):
     paths = glob(os.path.join(root, "train/*"))
 
@@ -55,7 +84,8 @@ class Dataset(torch.utils.data.Dataset):
         self.name = os.path.basename(root)
         if self.name in PIX2PIX_DATASETS and not skip_pix2pix_processing:
             pix2pix_split_images(self.root)
-
+        if self.name in PIX2PIX_DATASETS and not skip_pix2pix_processing:
+            pix2pix_split_images_val(self.root)
         self.paths = glob(os.path.join(self.root, '{}/*'.format(data_type)))
         if len(self.paths) == 0:
             raise Exception("No images are found in {}".format(self.root))
@@ -66,10 +96,22 @@ class Dataset(torch.utils.data.Dataset):
             transforms.ToTensor(),
             #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         ])
+        if not os.path.exists('data/{}_A.npy'.format(root.split('/')[-1])):
+            val_paths = glob(os.path.join(self.root, '{}_val/*'.format(data_type)))
+            if len(val_paths)==0:
+                raise Exception("No images are found in {}".format(os.path.join(self.root, '{}_val/*'.format(data_type))))
+            image = []
+            edges = []
+            for i in val_paths:
+                image.append(self.transform(Image.open(i).convert('RGB')))
+                edges.append(self.transform(Image.open(i.replace('/A','/B')).convert('RGB')))
+
+            np.save('data/{}_A.npy'.format(root.split('/')[-1]), np.array(torch.stack(image,0)))
+            np.save('data/{}_B.npy'.format(root.split('/')[-1]), np.array(torch.stack(edges,0)))
 
     def __getitem__(self, index):
         image = Image.open(self.paths[index]).convert('RGB')
-        edges = Image.open(self.paths[index].replace('/A','/B1')).convert('RGB')
+        edges = Image.open(self.paths[index].replace('/A','/B')).convert('RGB')
         #edges = image.filter(ImageFilter.FIND_EDGES)
 
         #if self.data_type=='B':

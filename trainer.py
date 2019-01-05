@@ -20,7 +20,7 @@ from datetime import datetime
 import torchvision
 tmp = datetime.now()
 
-writer = SummaryWriter('../runs/' + str(tmp))
+writer = SummaryWriter('./runs/' + str(tmp))
 
 
 def weights_init(m):
