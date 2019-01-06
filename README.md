@@ -15,3 +15,9 @@ This code is a fork from the code for "Learning to Discover Cross-Domain Relatio
 ## Start training
 
     $ python main.py
+
+## To monitor results
+
+    $ tensorboard --logdir runs
+
+Check points are save in **logs**

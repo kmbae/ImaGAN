@@ -253,10 +253,10 @@ class Trainer(object):
 
             x_A1, x_B1 = x_A1['image'], x_A1['edges']
             x_A2, x_B2 = x_A2['image'], x_A2['edges']
-            writer.add_image('x_A1', x_A1[:16],step)
-            writer.add_image('x_A2', x_A2[:16],step)
-            writer.add_image('x_B1', x_B1[:16],step)
-            writer.add_image('x_B2', x_B2[:16],step)
+            #writer.add_image('x_A1', x_A1[:16],step)
+            #writer.add_image('x_A2', x_A2[:16],step)
+            #writer.add_image('x_B1', x_B1[:16],step)
+            #writer.add_image('x_B2', x_B2[:16],step)
             if x_A1.size(0) != x_B1.size(0) or x_A2.size(0) != x_B2.size(0) or x_A1.size(0) != x_A2.size(0):
                 print("[!] Sampled dataset from A and B have different # of data. Try resampling...")
                 continue
