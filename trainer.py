@@ -14,7 +14,6 @@ from torch.autograd import Variable
 from models import *
 from data_loader import get_loader
 
-import ipdb
 from tensorboardX import SummaryWriter
 from datetime import datetime
 import torchvision
@@ -415,8 +414,9 @@ class Trainer(object):
             l_g = l_gan_A + l_gan_B + l_const_A + l_const_B + l_const_AB + l_const_BA
 
             # Identity loss
-            if True:
-                l_idn = 0.1*(d(x_A1, x_A1G) + d(x_A2, x_A2G))
+            #print(self.identity)
+            if self.identity:
+                l_idn = self.identity*(d(x_A1, x_A1G) + d(x_A2, x_A2G))
                 l_g += l_idn
 
             l_g.backward()
