@@ -41,6 +41,8 @@ train_arg.add_argument('--beta1', type=float, default=0.5)
 train_arg.add_argument('--beta2', type=float, default=0.999)
 train_arg.add_argument('--loss', type=str, default="log_prob",
                        choices=["log_prob"], help="least square loss doesn't work well")
+train_arg.add_argument('--identity', type=float, default=0.1,
+                        help="Parameter for identity loss")
 train_arg.add_argument('--weight_decay', type=float, default=0.0001)
 
 # Misc
