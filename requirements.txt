@@ -1,8 +1,8 @@
 torch
 numpy
 Pillow
-scipy
+glob
+argparse
 torchvision
-h5py
 tensorboardx
 tqdm
