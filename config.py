@@ -35,13 +35,13 @@ data_arg.add_argument('--dataset_A2', type=str, default='./data/edges2shoes')
 train_arg = add_argument_group('Training')
 train_arg.add_argument('--is_train', type=str2bool, default=True)
 train_arg.add_argument('--optimizer', type=str, default='adam')
-train_arg.add_argument('--max_step', type=int, default=500000)
+train_arg.add_argument('--max_step', type=int, default=15000)
 train_arg.add_argument('--lr', type=float, default=0.0001)
 train_arg.add_argument('--beta1', type=float, default=0.5)
 train_arg.add_argument('--beta2', type=float, default=0.999)
 train_arg.add_argument('--loss', type=str, default="log_prob",
                        choices=["log_prob"], help="least square loss doesn't work well")
-train_arg.add_argument('--identity', type=float, default=0.1,
+train_arg.add_argument('--identity', type=float, default=0,
                         help="Parameter for identity loss")
 train_arg.add_argument('--weight_decay', type=float, default=0.0001)
 

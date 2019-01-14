@@ -50,6 +50,7 @@ class Trainer(object):
         self.batch_size = config.batch_size
         self.weight_decay = config.weight_decay
         self.cnn_type = config.cnn_type
+        self.identity = config.identity
 
         self.model_dir = config.model_dir
         self.load_path = config.load_path
@@ -154,6 +155,7 @@ class Trainer(object):
 
     def train(self):
         d = nn.MSELoss()
+        #d = nn.L1Loss()
         bce = nn.BCELoss()
 
         real_label = 1
@@ -507,7 +509,7 @@ class Trainer(object):
         x_ABAf = self.F(x_BAB)
         x_ABAB = self.G(x_ABAf, inputs)
 
-        x_BA_path = '{}/{}_x_BA.png'.format(path, idx)
+        x_BA_path = '{}/{}_x_A2G.png'.format(path, idx)
         #x_BAB_path = '{}/{}_x_BAB.png'.format(path, idx)
 
         vutils.save_image(x_BAB.data, x_BA_path)
