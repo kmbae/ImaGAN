@@ -4,5 +4,6 @@ Pillow
 glob
 argparse
 torchvision
+tensorflow
 tensorboardx
 tqdm

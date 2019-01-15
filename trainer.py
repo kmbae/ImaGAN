@@ -17,6 +17,7 @@ from data_loader import get_loader
 from tensorboardX import SummaryWriter
 from datetime import datetime
 import torchvision
+import ipdb
 tmp = datetime.now()
 
 writer = SummaryWriter('./runs/' + str(tmp))
@@ -365,7 +366,9 @@ class Trainer(object):
             l_gan_Af = bce(self.D_B1(x_BA1), real_tensor)
             l_gan_Bf = bce(self.D_B2(x_BA2), real_tensor)
 
-            l_f = l_gan_Af + l_gan_Bf + d(x_BA1, x_B1) + d(x_BA2, x_B2)
+            L_R = d(x_BA1, x_B1) + d(x_BA2, x_B2)
+            L_R_adv = l_gan_Af + l_gan_Bf
+            l_f = l_gan_Af + l_gan_Bf + L_R
 
             l_f.backward()
             optimizer_f.step()
@@ -402,6 +405,8 @@ class Trainer(object):
             l_const_A += d(x_A2GA2G, x_A2G.detach())
             l_const_AB += d(x_B2A2G, x_B2A2)
 
+            L_G_cyc = l_const_A + l_const_AB + l_const_B + l_const_BA
+
             if self.loss == "log_prob":
                 l_gan_A = bce(self.D_S(x_A1G), real_tensor) + bce(self.D_S(x_A1GA1), real_tensor)
                 # + bce(self.D_F(x_B12f, x_B1), real_tensor)
@@ -412,7 +417,7 @@ class Trainer(object):
                 l_gan_B = 0.5 * torch.mean((self.D_H(x_A21) - 1)**2)
             else:
                 raise Exception("[!] Unkown loss type: {}".format(self.loss))
-
+            L_G_adv = l_gan_A + l_gan_B
             l_g = l_gan_A + l_gan_B + l_const_A + l_const_B + l_const_AB + l_const_BA
 
             # Identity loss
@@ -460,12 +465,23 @@ class Trainer(object):
 
                 self.generate_with_A(valid_x_A, valid_x_A1, self.model_dir, idx=step)
                 self.generate_with_B(valid_x_A1, valid_x_A, self.model_dir, idx=step)
+                '''
                 writer.add_scalars('loss_G', {'l_g':l_g,'l_gan_A':l_gan_A,
                     'l_f':l_f},
                     step)
                 writer.add_scalars('loss_F', {'l_const_A':l_const_A, 'l_const_AB': l_const_AB}, step)
                     #'l_const_B':l_const_B,'l_const_AB':l_const_AB,'l_const_BA':l_const_BA}, step)
                 writer.add_scalars('loss_D', {'l_d_A':l_d_A,'l_d_B':l_d_B}, step)
+                '''
+                # Discriminator loss
+                writer.add_scalar('L_d_A', l_d_A, step)
+                writer.add_scalar('L_d_B', l_d_B, step)
+                # Style removal network loss
+                writer.add_scalar('L_R', L_R, step)
+                writer.add_scalar('L_R_adv', L_R_adv, step)
+                # Generator loss
+                writer.add_scalar('L_G', L_G_cyc, step)
+                writer.add_scalar('L_G_adv', L_G_adv, step)
             if step % self.save_step == 0:
                 print("[*] Save models to {}...".format(self.model_dir))
 
@@ -497,7 +513,7 @@ class Trainer(object):
             writer.add_image('x_A1f', x_AB[:16], idx)
             writer.add_image('x_A1valid', inputs[:16], idx)
             writer.add_image('x_A1_2', x_ABA[:16], idx)
-            writer.add_image('x_B1_2f', x_ABAf[:16], idx)
+            #writer.add_image('x_B1_2f', x_ABAf[:16], idx)
             writer.add_image('x_A1_rec', x_ABAB[:16], idx)
             #writer.add_image('x_ABA', x_ABA, idx)
             #vutils.save_image(x_ABA.data, x_ABA_path)
@@ -525,7 +541,7 @@ class Trainer(object):
             writer.add_image('x_A2f', x_BA[:16], idx)
             writer.add_image('x_A2valid', inputs[:16], idx)
             writer.add_image('x_A2_1', x_BAB[:16], idx)
-            writer.add_image('x_B1_1f', x_ABAf[:16], idx)
+            #writer.add_image('x_B1_1f', x_ABAf[:16], idx)
             writer.add_image('x_A2_rec', x_ABAB[:16], idx)
             #writer.add_image('x_BAB', x_BAB, idx)
             #vutils.save_image(x_BAB.data, x_BAB_path)
