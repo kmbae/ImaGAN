@@ -271,8 +271,9 @@ class Trainer(object):
             fake_tensor.data.resize_(batch_size).fill_(fake_label)
 
             ## Update Db network
-            self.D_B1.zero_grad()
-            self.D_B2.zero_grad()
+            #self.D_B1.zero_grad()
+            #self.D_B2.zero_grad()
+            optimizer_db.zero_grad()
 
             x_A12 = self.F(x_A1).detach()
             x_A21 = self.F(x_A2).detach()
@@ -290,14 +291,14 @@ class Trainer(object):
             l_d_A = l_d_A_real + l_d_A_fake
             l_d_B = l_d_B_real + l_d_B_fake
 
-            l_d = l_d_A + l_d_B
-
-            l_d.backward()
+            l_dB = l_d_A + l_d_B
+            l_dB.backward()
             optimizer_db.step()
 
             ## Update D network
-            self.D_S.zero_grad()
-            self.D_H.zero_grad()
+            #self.D_S.zero_grad()
+            #self.D_H.zero_grad()
+            optimizer_d.zero_grad()
 
             x_A12 = self.G(self.F(x_A1), x_A2).detach()
             x_A21 = self.G(self.F(x_A2), x_A1).detach()
@@ -321,9 +322,9 @@ class Trainer(object):
             l_d_A = l_d_A_real + l_d_A_fake + tmp1
             l_d_B = l_d_B_real + l_d_B_fake + tmp2
 
-            l_d = l_d_A + l_d_B
+            l_dA = l_d_A + l_d_B
 
-            l_d.backward()
+            l_dA.backward()
             optimizer_d.step()
 
             ## Update DF network
@@ -358,7 +359,8 @@ class Trainer(object):
             optimizer_df.step()'''
 
             # Update F network
-            self.F.zero_grad()
+            #self.F.zero_grad()
+            optimizer_f.zero_grad()
 
             x_BA1 = self.F(x_A1)
             x_BA2 = self.F(x_A2)
@@ -374,7 +376,8 @@ class Trainer(object):
             optimizer_f.step()
 
             # update G network
-            self.G.zero_grad()
+            #self.G.zero_grad()
+            optimizer_g.zero_grad()
 
             x_B1A1 = self.F(x_A1).detach()
             x_B2A2 = self.F(x_A2).detach()
@@ -422,9 +425,9 @@ class Trainer(object):
 
             # Identity loss
             #print(self.identity)
-            if self.identity:
-                l_idn = self.identity*(d(x_A1, x_A1G) + d(x_A2, x_A2G))
-                l_g += l_idn
+            #if self.identity:
+            #    l_idn = self.identity*(d(x_A1, x_A1G) + d(x_A2, x_A2G))
+            #    l_g += l_idn
 
             l_g.backward()
             optimizer_g.step()
@@ -452,7 +455,7 @@ class Trainer(object):
 
             if step % self.log_step == 0:
                 print("[{}/{}] Loss_D: {:.4f} Loss_G: {:.4f}". \
-                        format(step, self.max_step, l_d.item(), l_g.item()))
+                        format(step, self.max_step, l_dA.item(), l_g.item()))
                 print("[{}/{}] l_d_A_real: {:.4f} l_d_A_fake: {:.4f}, l_d_B_real: {:.4f}, l_d_B_fake: {:.4f}". \
                         format(step, self.max_step, l_d_A_real.item(), l_d_A_fake.item(),
                              l_d_B_real.item(), l_d_B_fake.item()))
@@ -462,9 +465,13 @@ class Trainer(object):
                 #        format(step, self.max_step,  l_const_AB.data[0], l_const_BA.data[0]))
                 print("[{}/{}] l_gan_A: {:.4f}, l_gan_B: ". \
                         format(step, self.max_step, l_gan_A.item()))
-
+                #ipdb.set_trace()
+                self.F.eval()
+                self.G.eval()
                 self.generate_with_A(valid_x_A, valid_x_A1, self.model_dir, idx=step)
                 self.generate_with_B(valid_x_A1, valid_x_A, self.model_dir, idx=step)
+                self.F.train()
+                self.G.train()
                 '''
                 writer.add_scalars('loss_G', {'l_g':l_g,'l_gan_A':l_gan_A,
                     'l_f':l_f},
@@ -472,10 +479,13 @@ class Trainer(object):
                 writer.add_scalars('loss_F', {'l_const_A':l_const_A, 'l_const_AB': l_const_AB}, step)
                     #'l_const_B':l_const_B,'l_const_AB':l_const_AB,'l_const_BA':l_const_BA}, step)
                 writer.add_scalars('loss_D', {'l_d_A':l_d_A,'l_d_B':l_d_B}, step)
-                '''
+                writer.add_image('x_A1', x_A1, step)
+                writer.add_image('x_B1', x_B1, step)
+                writer.add_image('x_A2', x_A2, step)
+                writer.add_image('x_B2', x_B2, step)'''
                 # Discriminator loss
-                writer.add_scalar('L_d_A', l_d_A, step)
-                writer.add_scalar('L_d_B', l_d_B, step)
+                writer.add_scalar('L_d_A', l_dA, step)
+                writer.add_scalar('L_d_B', l_dB, step)
                 # Style removal network loss
                 writer.add_scalar('L_R', L_R, step)
                 writer.add_scalar('L_R_adv', L_R_adv, step)
@@ -512,7 +522,7 @@ class Trainer(object):
         if tf_board:
             writer.add_image('x_A1f', x_AB[:16], idx)
             writer.add_image('x_A1valid', inputs[:16], idx)
-            writer.add_image('x_A1_2', x_ABA[:16], idx)
+            writer.add_image('x_A1G', x_ABA[:16], idx)
             #writer.add_image('x_B1_2f', x_ABAf[:16], idx)
             writer.add_image('x_A1_rec', x_ABAB[:16], idx)
             #writer.add_image('x_ABA', x_ABA, idx)
@@ -540,7 +550,7 @@ class Trainer(object):
         if tf_board:
             writer.add_image('x_A2f', x_BA[:16], idx)
             writer.add_image('x_A2valid', inputs[:16], idx)
-            writer.add_image('x_A2_1', x_BAB[:16], idx)
+            writer.add_image('x_A2G', x_BAB[:16], idx)
             #writer.add_image('x_B1_1f', x_ABAf[:16], idx)
             writer.add_image('x_A2_rec', x_ABAB[:16], idx)
             #writer.add_image('x_BAB', x_BAB, idx)
