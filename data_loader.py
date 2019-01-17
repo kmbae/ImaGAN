@@ -128,7 +128,7 @@ def get_loader(root, batch_size, scale_size, num_workers=2,
         #Dataset(root, scale_size, "B", skip_pix2pix_processing)
     a_data_loader = torch.utils.data.DataLoader(dataset=a_data_set,
                                                 batch_size=batch_size,
-                                                shuffle=False,
+                                                shuffle=True,
                                                 num_workers=num_workers)
     #b_data_loader = torch.utils.data.DataLoader(dataset=b_data_set,
     #                                            batch_size=batch_size,
