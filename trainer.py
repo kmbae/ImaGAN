@@ -209,8 +209,7 @@ class Trainer(object):
             valid_x_A1, valid_x_B1=torch.Tensor(np.load(self.config.dataset_A2+'_A.npy')), torch.Tensor(np.load(self.config.dataset_A2+'_B.npy'))
             valid_x_A1, valid_x_B1 = self._get_variable(valid_x_A1), self._get_variable(valid_x_B1)
         except:
-            print('Cannot load validation file. Validation data not created')
-            assert 1
+            raise Exception('Cannot load validation file. Validation data not created')
             '''
             x_A1 = A_loader.next()
             x_A2 = A1_loader.next()
@@ -255,10 +254,6 @@ class Trainer(object):
 
             x_A1, x_B1 = x_A1['image'], x_A1['edges']
             x_A2, x_B2 = x_A2['image'], x_A2['edges']
-            #writer.add_image('x_A1', x_A1[:16],step)
-            #writer.add_image('x_A2', x_A2[:16],step)
-            #writer.add_image('x_B1', x_B1[:16],step)
-            #writer.add_image('x_B2', x_B2[:16],step)
             if x_A1.size(0) != x_B1.size(0) or x_A2.size(0) != x_B2.size(0) or x_A1.size(0) != x_A2.size(0):
                 print("[!] Sampled dataset from A and B have different # of data. Try resampling...")
                 continue
@@ -269,7 +264,23 @@ class Trainer(object):
             batch_size = x_A1.size(0)
             real_tensor.data.resize_(batch_size).fill_(real_label)
             fake_tensor.data.resize_(batch_size).fill_(fake_label)
+            """
+            ####### Debugging
+            ipdb.set_trace()
+            x_A1.data.resize_(x_A1.shape).fill_(real_label)
+            x_B1.data.resize_(x_B1.shape).fill_(real_label)
+            x_A2.data.resize_(x_A2.shape).fill_(real_label)
+            x_B2.data.resize_(x_B2.shape).fill_(real_label)
 
+            self.G.load_state_dict(torch.load('G_0.pth'))
+            self.F.load_state_dict(torch.load('F_0.pth'))
+
+            self.D_S.load_state_dict(torch.load('D_A2_0.pth'))
+            self.D_H.load_state_dict(torch.load('D_A1_0.pth'))
+
+            self.D_B1.load_state_dict(torch.load('D_B1_0.pth'))
+            self.D_B2.load_state_dict(torch.load('D_B2_0.pth'))
+            """
             ## Update Db network
             #self.D_B1.zero_grad()
             #self.D_B2.zero_grad()
@@ -478,11 +489,11 @@ class Trainer(object):
                     step)
                 writer.add_scalars('loss_F', {'l_const_A':l_const_A, 'l_const_AB': l_const_AB}, step)
                     #'l_const_B':l_const_B,'l_const_AB':l_const_AB,'l_const_BA':l_const_BA}, step)
-                writer.add_scalars('loss_D', {'l_d_A':l_d_A,'l_d_B':l_d_B}, step)
-                writer.add_image('x_A1', x_A1, step)
-                writer.add_image('x_B1', x_B1, step)
-                writer.add_image('x_A2', x_A2, step)
-                writer.add_image('x_B2', x_B2, step)'''
+                writer.add_scalars('loss_D', {'l_d_A':l_d_A,'l_d_B':l_d_B}, step)'''
+                #writer.add_image('x_A1', x_A1[:16], step)
+                #writer.add_image('x_B1', x_B1[:16], step)
+                #writer.add_image('x_A2', x_A2[:16], step)
+                #writer.add_image('x_B2', x_B2[:16], step)
                 # Discriminator loss
                 writer.add_scalar('L_d_A', l_dA, step)
                 writer.add_scalar('L_d_B', l_dB, step)
@@ -498,8 +509,11 @@ class Trainer(object):
                 torch.save(self.G.state_dict(), '{}/G_{}.pth'.format(self.model_dir, step))
                 torch.save(self.F.state_dict(), '{}/F_{}.pth'.format(self.model_dir, step))
 
-                torch.save(self.D_S.state_dict(), '{}/D_A_{}.pth'.format(self.model_dir, step))
-                torch.save(self.D_H.state_dict(), '{}/D_B_{}.pth'.format(self.model_dir, step))
+                torch.save(self.D_H.state_dict(), '{}/D_A1_{}.pth'.format(self.model_dir, step))
+                torch.save(self.D_S.state_dict(), '{}/D_A2_{}.pth'.format(self.model_dir, step))
+
+                torch.save(self.D_B1.state_dict(), '{}/D_B1_{}.pth'.format(self.model_dir, step))
+                torch.save(self.D_B2.state_dict(), '{}/D_B2_{}.pth'.format(self.model_dir, step))
 
     def generate_with_A(self, inputs, input_ref, path, idx=None, tf_board=True):
         x_AB = self.F(inputs)
@@ -524,7 +538,7 @@ class Trainer(object):
             writer.add_image('x_A1valid', inputs[:16], idx)
             writer.add_image('x_A1G', x_ABA[:16], idx)
             #writer.add_image('x_B1_2f', x_ABAf[:16], idx)
-            writer.add_image('x_A1_rec', x_ABAB[:16], idx)
+            writer.add_image('x_A1rec', x_ABAB[:16], idx)
             #writer.add_image('x_ABA', x_ABA, idx)
             #vutils.save_image(x_ABA.data, x_ABA_path)
             #print("[*] Samples saved: {}".format(x_ABA_path))
@@ -552,7 +566,7 @@ class Trainer(object):
             writer.add_image('x_A2valid', inputs[:16], idx)
             writer.add_image('x_A2G', x_BAB[:16], idx)
             #writer.add_image('x_B1_1f', x_ABAf[:16], idx)
-            writer.add_image('x_A2_rec', x_ABAB[:16], idx)
+            writer.add_image('x_A2rec', x_ABAB[:16], idx)
             #writer.add_image('x_BAB', x_BAB, idx)
             #vutils.save_image(x_BAB.data, x_BAB_path)
             #print("[*] Samples saved: {}".format(x_BAB_path))
@@ -573,9 +587,9 @@ class Trainer(object):
 
     def test(self):
         batch_size = self.config.sample_per_image
-        x_A1, x_B1 = torch.Tensor(np.load('../valid_x_A1.npy')), torch.Tensor(np.load('../valid_x_B1.npy'))
+        x_A1, x_B1 = torch.Tensor(np.load('./valid_x_A1.npy')), torch.Tensor(np.load('./valid_x_B1.npy'))
         x_A1, x_B1 = self._get_variable(x_A1), self._get_variable(x_B1)
-        x_A2, x_B2=torch.Tensor(np.load('../valid_x_A2.npy')), torch.Tensor(np.load('../valid_x_B2.npy'))
+        x_A2, x_B2=torch.Tensor(np.load('./valid_x_A2.npy')), torch.Tensor(np.load('./valid_x_B2.npy'))
         x_A2, x_B2 = self._get_variable(x_A2), self._get_variable(x_B2)
 
         test_dir = os.path.join(self.model_dir, 'test')
