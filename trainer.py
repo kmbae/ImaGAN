@@ -33,19 +33,13 @@ def weights_init(m):
         m.weight.data.uniform_(-stdv, stdv)
         if m.bias is not None:
             m.bias.data.uniform_(-stdv, stdv)
-        #m.weight.data.normal_(0.0, 0.02)
-    #elif classname.find('BatchNorm') != -1:
-    #    m.weight.data.normal_(1.0, 0.02)
-    #    m.bias.data.fill_(0)
 
 class Trainer(object):
     def __init__(self, config, a_data_loader, a1_data_loader):
         self.config = config
 
         self.a_data_loader = a_data_loader
-        #self.b_data_loader = b_data_loader
         self.a1_data_loader = a1_data_loader
-        #self.b1_data_loader = b1_data_loader
 
         self.num_gpu = config.num_gpu
         self.dataset = config.dataset
@@ -70,14 +64,7 @@ class Trainer(object):
 
         self.build_model()
 
-        if self.num_gpu == 1:
-            self.G_AB.cuda()
-            self.G_BA.cuda()
-            self.D_S.cuda()
-            self.D_H.cuda()
-            self.D_F.cuda()
-
-        elif self.num_gpu > 1:
+        if torch.cuda.is_available():
             self.G = nn.DataParallel(self.G.cuda(),device_ids=range(torch.cuda.device_count()))
             self.F = nn.DataParallel(self.F.cuda(),device_ids=range(torch.cuda.device_count()))
             self.D_S = nn.DataParallel(self.D_S.cuda(),device_ids=range(torch.cuda.device_count()))
@@ -108,6 +95,7 @@ class Trainer(object):
             else:
                 raise Exception("[!] cnn_type {} is not defined".format(self.cnn_type))
 
+            ### Define networks ###
             self.G = GeneratorCNN_g(
                     a_channel+b_channel, b_channel, conv_dims, deconv_dims, self.num_gpu)
             self.F = GeneratorCNN(
@@ -148,7 +136,6 @@ class Trainer(object):
             map_location = None
 
         G_AB_filename = '{}/G_AB_{}.pth'.format(self.load_path, self.start_step)
-        #self.G_AB.load_state_dict(torch.load(G_AB_filename, map_location=map_location))
         self.G.load_state_dict(
             torch.load('{}/G_BA_{}.pth'.format(self.load_path, self.start_step), map_location=map_location))
 
@@ -160,10 +147,12 @@ class Trainer(object):
         print("[*] Model loaded: {}".format(G_AB_filename))
 
     def train(self):
+        ## Define loss function
         d = nn.MSELoss()
         #d = nn.L1Loss()
         bce = nn.BCELoss()
 
+        ## Labels for real and fake data
         real_label = 1
         fake_label = 0
 
@@ -191,9 +180,6 @@ class Trainer(object):
         optimizer_db = optimizer(
             chain(self.D_B1.parameters(), self.D_B2.parameters()),
             lr=self.lr, betas=(self.beta1, self.beta2), weight_decay=self.weight_decay)
-        optimizer_df = optimizer(
-            self.D_F.parameters(),
-            lr=self.lr, betas=(self.beta1, self.beta2), weight_decay=self.weight_decay)
         optimizer_f = optimizer(
             self.F.parameters(),
             lr=self.lr, betas=(self.beta1, self.beta2))
@@ -201,13 +187,9 @@ class Trainer(object):
             self.G.parameters(),
             lr=self.lr, betas=(self.beta1, self.beta2))
 
-        #A_loader, B_loader = iter(self.a_data_loader), iter(self.b_data_loader)
+        ### Dataloader ###
         A_loader = iter(self.a_data_loader)
-        #valid_x_A, valid_x_B = torch.Tensor(np.load('../valid_x_A2.npy')), torch.Tensor(np.load('../valid_x_B2.npy'))
-        #self._get_variable(A_loader.next()), self._get_variable(B_loader.next())
-        #A1_loader, B1_loader = iter(self.a1_data_loader), iter(self.b1_data_loader)
         A1_loader = iter(self.a1_data_loader)
-        #valid_x_A1, valid_x_B1=torch.Tensor(np.load('../valid_x_A2_chair.npy')), torch.Tensor(np.load('../valid_x_B2_chair.npy'))
         try:
             valid_x_A, valid_x_B = torch.Tensor(np.load(self.config.dataset_A1+'_A.npy')), torch.Tensor(np.load(self.config.dataset_A1+'_B.npy'))
             valid_x_A, valid_x_B = self._get_variable(valid_x_A), self._get_variable(valid_x_B)
@@ -221,23 +203,18 @@ class Trainer(object):
         vutils.save_image(valid_x_A1.data, '{}/valid_x_A2.png'.format(self.model_dir))
         vutils.save_image(valid_x_B1.data, '{}/valid_x_B2.png'.format(self.model_dir))
 
+        ### Training loop ###
         for step in trange(self.start_step, self.max_step):
             try:
                 x_A1 = A_loader.next()
-                #x_B1 = B_loader.next()
             except StopIteration:
                 A_loader = iter(self.a_data_loader)
-                #B_loader = iter(self.b_data_loader)
                 x_A1 = A_loader.next()
-                #x_B1 = B_loader.next()
             try:
                 x_A2 = A1_loader.next()
-                #x_B2 = B1_loader.next()
             except StopIteration:
                 A1_loader = iter(self.a1_data_loader)
-                #B1_loader = iter(self.b1_data_loader)
                 x_A2 = A1_loader.next()
-                #x_B2 = B1_loader.next()
 
             x_A1, x_B1 = x_A1['image'], x_A1['edges']
             x_A2, x_B2 = x_A2['image'], x_A2['edges']
@@ -435,7 +412,6 @@ class Trainer(object):
         x_ABAB = self.G(x_ABAf, inputs)
 
         x_AB_path = '{}/{}_x_A1G.png'.format(path, idx)
-        #x_ABA_path = '{}/{}_x_ABA.png'.format(path, idx)
 
         vutils.save_image(x_ABA.data, x_AB_path)
         if not os.path.isdir('{}/{}_A1'.format(path, idx)):
@@ -450,11 +426,7 @@ class Trainer(object):
             writer.add_image('x_A1f', x_AB[:16], idx)
             writer.add_image('x_A1valid', inputs[:16], idx)
             writer.add_image('x_A1G', x_ABA[:16], idx)
-            #writer.add_image('x_B1_2f', x_ABAf[:16], idx)
             writer.add_image('x_A1rec', x_ABAB[:16], idx)
-            #writer.add_image('x_ABA', x_ABA, idx)
-            #vutils.save_image(x_ABA.data, x_ABA_path)
-            #print("[*] Samples saved: {}".format(x_ABA_path))
 
     def generate_with_B(self, inputs, input_ref, path, idx=None, tf_board=True):
         x_BA = self.F(inputs)
@@ -463,7 +435,6 @@ class Trainer(object):
         x_ABAB = self.G(x_ABAf, inputs)
 
         x_BA_path = '{}/{}_x_A2G.png'.format(path, idx)
-        #x_BAB_path = '{}/{}_x_BAB.png'.format(path, idx)
 
         vutils.save_image(x_BAB.data, x_BA_path)
         if not os.path.isdir('{}/{}_A2'.format(path, idx)):
@@ -478,11 +449,7 @@ class Trainer(object):
             writer.add_image('x_A2f', x_BA[:16], idx)
             writer.add_image('x_A2valid', inputs[:16], idx)
             writer.add_image('x_A2G', x_BAB[:16], idx)
-            #writer.add_image('x_B1_1f', x_ABAf[:16], idx)
             writer.add_image('x_A2rec', x_ABAB[:16], idx)
-            #writer.add_image('x_BAB', x_BAB, idx)
-            #vutils.save_image(x_BAB.data, x_BAB_path)
-            #print("[*] Samples saved: {}".format(x_BAB_path))
 
     def generate_infinitely(self, inputs, path, input_type, count=10, nrow=2, idx=None):
         if input_type.lower() == "a":
