@@ -391,7 +391,8 @@ class Trainer(object):
                 # Generator loss
                 writer.add_scalar('L_G', L_G_cyc, step)
                 writer.add_scalar('L_G_adv', L_G_adv, step)
-                writer.add_scalar('L_ind', l_ind, step)
+                if self.identity:
+                    writer.add_scalar('L_ind', l_ind, step)
 
             if step % self.save_step == 0:
                 print("[*] Save models to {}...".format(self.model_dir))
