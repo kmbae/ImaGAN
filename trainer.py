@@ -25,7 +25,6 @@ writer = SummaryWriter('./runs/' + str(tmp))
 
 def weights_init(m):
     classname = m.__class__.__name__
-    #ipdb.set_trace()
     if classname.find('Conv') != -1:
         n = m.in_channels
         for k in m.kernel_size:
@@ -85,7 +84,6 @@ class Trainer(object):
             self.D_H = nn.DataParallel(self.D_H.cuda(),device_ids=range(torch.cuda.device_count()))
             self.D_B1 = nn.DataParallel(self.D_B1.cuda(),device_ids=range(torch.cuda.device_count()))
             self.D_B2 = nn.DataParallel(self.D_B2.cuda(),device_ids=range(torch.cuda.device_count()))
-            self.D_F = nn.DataParallel(self.D_F.cuda(),device_ids=range(torch.cuda.device_count()))
 
         if self.load_path:
             self.load_model()
@@ -123,17 +121,13 @@ class Trainer(object):
                     a_channel, 1, conv_dims, self.num_gpu)
             self.D_B2 = DiscriminatorCNN(
                     b_channel, 1, conv_dims, self.num_gpu)
-            self.D_F = DiscriminatorCNN_f(
-                    a_channel + b_channel, 1, conv_dims, self.num_gpu)
+
             self.D_B1.apply(weights_init)
             self.D_B2.apply(weights_init)
             self.D_S.apply(weights_init)
             self.D_H.apply(weights_init)
             self.G.apply(weights_init)
             self.F.apply(weights_init)
-
-            #self.D_A.apply(weights_init)
-            #self.D_B.apply(weights_init)
 
     def load_model(self):
         print("[*] Load models from {}...".format(self.load_path))
@@ -221,24 +215,6 @@ class Trainer(object):
             valid_x_A1, valid_x_B1 = self._get_variable(valid_x_A1), self._get_variable(valid_x_B1)
         except:
             raise Exception('Cannot load validation file. Validation data not created')
-            '''
-            x_A1 = A_loader.next()
-            x_A2 = A1_loader.next()
-            x_A1, x_B1 = x_A1['image'], x_A1['edges']
-            x_A2, x_B2 = x_A2['image'], x_A2['edges']
-            np.save(self.config.dataset_A1+'_A.npy',np.array(x_A1))
-            np.save(self.config.dataset_A1+'_B.npy',np.array(x_B1))
-            np.save(self.config.dataset_A2+'_A.npy',np.array(x_A2))
-            np.save(self.config.dataset_A2+'_B.npy',np.array(x_B2))
-
-            valid_x_A, valid_x_B = torch.Tensor(np.load(self.config.dataset_A1+'_A.npy')), torch.Tensor(np.load(self.config.dataset_A1+'_B.npy'))
-            valid_x_A, valid_x_B = self._get_variable(valid_x_A), self._get_variable(valid_x_B)
-            valid_x_A1, valid_x_B1=torch.Tensor(np.load(self.config.dataset_A2+'_A.npy')), torch.Tensor(np.load(self.config.dataset_A2+'_B.npy'))
-            valid_x_A1, valid_x_B1 = self._get_variable(valid_x_A1), self._get_variable(valid_x_B1)
-            '''
-
-        #self._get_variable(A1_loader.next()), self._get_variable(B1_loader.next())
-        #ipdb.set_trace()
 
         vutils.save_image(valid_x_A.data, '{}/valid_x_A1.png'.format(self.model_dir))
         vutils.save_image(valid_x_B.data, '{}/valid_x_B1.png'.format(self.model_dir))
@@ -275,23 +251,7 @@ class Trainer(object):
             batch_size = x_A1.size(0)
             real_tensor.data.resize_(batch_size).fill_(real_label)
             fake_tensor.data.resize_(batch_size).fill_(fake_label)
-            """
-            ####### Debugging
-            ipdb.set_trace()
-            x_A1.data.resize_(x_A1.shape).fill_(real_label)
-            x_B1.data.resize_(x_B1.shape).fill_(real_label)
-            x_A2.data.resize_(x_A2.shape).fill_(real_label)
-            x_B2.data.resize_(x_B2.shape).fill_(real_label)
 
-            self.G.load_state_dict(torch.load('G_0.pth'))
-            self.F.load_state_dict(torch.load('F_0.pth'))
-
-            self.D_S.load_state_dict(torch.load('D_A2_0.pth'))
-            self.D_H.load_state_dict(torch.load('D_A1_0.pth'))
-
-            self.D_B1.load_state_dict(torch.load('D_B1_0.pth'))
-            self.D_B2.load_state_dict(torch.load('D_B2_0.pth'))
-            """
             ## Update Db network
             self.D_B1.zero_grad()
             self.D_B2.zero_grad()
@@ -348,37 +308,6 @@ class Trainer(object):
 
             l_dA.backward()
             optimizer_d.step()
-
-            ## Update DF network
-            '''self.D_F.zero_grad()
-
-            x_B1_A1 = self.F(x_A1)
-            x_B2_A2 = self.F(x_A2)
-
-            x_A2_B1_A1 = self.G(x_B1_A1, x_A2)
-            x_A1_B2_A2 = self.G(x_B2_A2, x_A1)
-
-            x_B2_A2_B1_A1 = self.F(x_A2_B1_A1)
-            x_B1_A1_B2_A2 = self.F(x_A1_B2_A2)
-
-            if self.loss == "log_prob":
-                l_d_A_real, l_d_A_fake = bce(self.D_F(x_B1, x_B1), real_tensor), bce(self.D_F(x_B1_A1_B2_A2, x_B1), fake_tensor)
-                l_d_B_real, l_d_B_fake = bce(self.D_F(x_B2, x_B2), real_tensor), bce(self.D_F(x_B2_A2_B1_A1, x_B2), fake_tensor)
-            elif self.loss == "least_square":
-                l_d_A_real, l_d_A_fake = \
-                    0.5 * torch.mean((self.D_A(x_A) - 1)**2), 0.5 * torch.mean((self.D_A(x_BA))**2)
-                l_d_B_real, l_d_B_fake = \
-                    0.5 * torch.mean((self.D_B(x_B) - 1)**2), 0.5 * torch.mean((self.D_B(x_AB))**2)
-            else:
-                raise Exception("[!] Unkown loss type: {}".format(self.loss))
-
-            l_d_A = l_d_A_real + l_d_A_fake
-            l_d_B = l_d_B_real + l_d_B_fake
-
-            l_f = l_d_A + l_d_B
-
-            l_f.backward()
-            optimizer_df.step()'''
 
             # Update F network
             self.F.zero_grad()
@@ -447,33 +376,12 @@ class Trainer(object):
 
             # Identity loss
             #print(self.identity)
-            #if self.identity:
-            #    l_idn = self.identity*(d(x_A1, x_A1G) + d(x_A2, x_A2G))
-            #    l_g += l_idn
+            if self.identity:
+                l_idn = self.identity*(d(x_A2, x_A1G) + d(x_A1, x_A2G))
+                l_g += l_idn
 
             l_g.backward()
             optimizer_g.step()
-
-            '''# update G network
-            self.G.zero_grad()
-
-            x_BA1 = self.F(x_A1).detach()
-            x_BA2 = self.F(x_A2).detach()
-
-            x_A12 = self.G(x_BA1, x_A2)
-            x_A21 = self.G(x_BA2, x_A1)
-
-            x_B12f = self.F(x_A12)
-            x_B21f = self.F(x_A21)
-
-            l_const_AB= d(x_B12f, x_B1)# + d(self.G(x_AB,x_AB), x_ABd) + d(self.G(x_AB,x_B), x_ABd))
-            l_const_BA= d(x_B21f, x_B2)# + d(self.G(x_BA,x_BA), x_BAd) + d(self.G(x_BA,x_A), x_BAd))
-            l_const_B12 = d(self.G(x_B1, x_B2), x_B1) + d(self.G(x_B2, x_B1), x_B2)
-
-            l_gg = (l_const_AB + l_const_BA + l_const_B12)
-
-            l_gg.backward()
-            optimizer_g.step()'''
 
             if step % self.log_step == 0:
                 print("[{}/{}] Loss_D: {:.4f} Loss_G: {:.4f}". \
@@ -483,24 +391,16 @@ class Trainer(object):
                              l_d_B_real.item(), l_d_B_fake.item()))
                 print("[{}/{}] l_const_A: {:.4f} l_const_B: ". \
                         format(step, self.max_step, l_const_A.item()))
-                #print("[{}/{}] l_const_AB: {:.4f}, l_const_BA: {:.4f}". \
-                #        format(step, self.max_step,  l_const_AB.data[0], l_const_BA.data[0]))
                 print("[{}/{}] l_gan_A: {:.4f}, l_gan_B: ". \
                         format(step, self.max_step, l_gan_A.item()))
-                #ipdb.set_trace()
+
                 self.F.eval()
                 self.G.eval()
                 self.generate_with_A(valid_x_A, valid_x_A1, self.model_dir, idx=step)
                 self.generate_with_B(valid_x_A1, valid_x_A, self.model_dir, idx=step)
                 self.F.train()
                 self.G.train()
-                '''
-                writer.add_scalars('loss_G', {'l_g':l_g,'l_gan_A':l_gan_A,
-                    'l_f':l_f},
-                    step)
-                writer.add_scalars('loss_F', {'l_const_A':l_const_A, 'l_const_AB': l_const_AB}, step)
-                    #'l_const_B':l_const_B,'l_const_AB':l_const_AB,'l_const_BA':l_const_BA}, step)
-                writer.add_scalars('loss_D', {'l_d_A':l_d_A,'l_d_B':l_d_B}, step)'''
+
                 #writer.add_image('x_A1', x_A1[:16], step)
                 #writer.add_image('x_B1', x_B1[:16], step)
                 #writer.add_image('x_A2', x_A2[:16], step)
@@ -514,6 +414,8 @@ class Trainer(object):
                 # Generator loss
                 writer.add_scalar('L_G', L_G_cyc, step)
                 writer.add_scalar('L_G_adv', L_G_adv, step)
+                writer.add_scalar('L_ind', l_ind, step)
+
             if step % self.save_step == 0:
                 print("[*] Save models to {}...".format(self.model_dir))
 
