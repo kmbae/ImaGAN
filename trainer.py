@@ -13,7 +13,7 @@ import numpy as np
 from torch.autograd import Variable
 from models import *
 from data_loader import get_loader
-
+import math
 from tensorboardX import SummaryWriter
 from datetime import datetime
 import torchvision
@@ -25,11 +25,19 @@ writer = SummaryWriter('./runs/' + str(tmp))
 
 def weights_init(m):
     classname = m.__class__.__name__
+    #ipdb.set_trace()
     if classname.find('Conv') != -1:
-        m.weight.data.normal_(0.0, 0.02)
-    elif classname.find('BatchNorm') != -1:
-        m.weight.data.normal_(1.0, 0.02)
-        m.bias.data.fill_(0)
+        n = m.in_channels
+        for k in m.kernel_size:
+            n *=k
+        stdv = 1. / math.sqrt(n)
+        m.weight.data.uniform_(-stdv, stdv)
+        if m.bias is not None:
+            m.bias.data.uniform_(-stdv, stdv)
+        #m.weight.data.normal_(0.0, 0.02)
+    #elif classname.find('BatchNorm') != -1:
+    #    m.weight.data.normal_(1.0, 0.02)
+    #    m.bias.data.fill_(0)
 
 class Trainer(object):
     def __init__(self, config, a_data_loader, a1_data_loader):
@@ -117,9 +125,12 @@ class Trainer(object):
                     b_channel, 1, conv_dims, self.num_gpu)
             self.D_F = DiscriminatorCNN_f(
                     a_channel + b_channel, 1, conv_dims, self.num_gpu)
-
-            #self.G_AB.apply(weights_init)
-            #self.G_BA.apply(weights_init)
+            self.D_B1.apply(weights_init)
+            self.D_B2.apply(weights_init)
+            self.D_S.apply(weights_init)
+            self.D_H.apply(weights_init)
+            self.G.apply(weights_init)
+            self.F.apply(weights_init)
 
             #self.D_A.apply(weights_init)
             #self.D_B.apply(weights_init)
@@ -282,9 +293,9 @@ class Trainer(object):
             self.D_B2.load_state_dict(torch.load('D_B2_0.pth'))
             """
             ## Update Db network
-            #self.D_B1.zero_grad()
-            #self.D_B2.zero_grad()
-            optimizer_db.zero_grad()
+            self.D_B1.zero_grad()
+            self.D_B2.zero_grad()
+            #optimizer_db.zero_grad()
 
             x_A12 = self.F(x_A1).detach()
             x_A21 = self.F(x_A2).detach()
@@ -307,9 +318,9 @@ class Trainer(object):
             optimizer_db.step()
 
             ## Update D network
-            #self.D_S.zero_grad()
-            #self.D_H.zero_grad()
-            optimizer_d.zero_grad()
+            self.D_S.zero_grad()
+            self.D_H.zero_grad()
+            #optimizer_d.zero_grad()
 
             x_A12 = self.G(self.F(x_A1), x_A2).detach()
             x_A21 = self.G(self.F(x_A2), x_A1).detach()
@@ -370,8 +381,8 @@ class Trainer(object):
             optimizer_df.step()'''
 
             # Update F network
-            #self.F.zero_grad()
-            optimizer_f.zero_grad()
+            self.F.zero_grad()
+            #optimizer_f.zero_grad()
 
             x_BA1 = self.F(x_A1)
             x_BA2 = self.F(x_A2)
@@ -387,8 +398,8 @@ class Trainer(object):
             optimizer_f.step()
 
             # update G network
-            #self.G.zero_grad()
-            optimizer_g.zero_grad()
+            self.G.zero_grad()
+            #optimizer_g.zero_grad()
 
             x_B1A1 = self.F(x_A1).detach()
             x_B2A2 = self.F(x_A2).detach()
