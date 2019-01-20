@@ -400,8 +400,8 @@ class Trainer(object):
                 torch.save(self.G.state_dict(), '{}/G_{}.pth'.format(self.model_dir, step))
                 torch.save(self.F.state_dict(), '{}/F_{}.pth'.format(self.model_dir, step))
 
-                torch.save(self.D_A1.state_dict(), '{}/D_A2_{}.pth'.format(self.model_dir, step))
-                torch.save(self.D_A2.state_dict(), '{}/D_A1_{}.pth'.format(self.model_dir, step))
+                torch.save(self.D_A1.state_dict(), '{}/D_A1_{}.pth'.format(self.model_dir, step))
+                torch.save(self.D_A2.state_dict(), '{}/D_A2_{}.pth'.format(self.model_dir, step))
 
                 torch.save(self.D_B1.state_dict(), '{}/D_B1_{}.pth'.format(self.model_dir, step))
                 torch.save(self.D_B2.state_dict(), '{}/D_B2_{}.pth'.format(self.model_dir, step))
