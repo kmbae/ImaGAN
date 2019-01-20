@@ -67,8 +67,8 @@ class Trainer(object):
         if torch.cuda.is_available():
             self.G = nn.DataParallel(self.G.cuda(),device_ids=range(torch.cuda.device_count()))
             self.F = nn.DataParallel(self.F.cuda(),device_ids=range(torch.cuda.device_count()))
-            self.D_S = nn.DataParallel(self.D_S.cuda(),device_ids=range(torch.cuda.device_count()))
-            self.D_H = nn.DataParallel(self.D_H.cuda(),device_ids=range(torch.cuda.device_count()))
+            self.D_A1 = nn.DataParallel(self.D_A1.cuda(),device_ids=range(torch.cuda.device_count()))
+            self.D_A2 = nn.DataParallel(self.D_A2.cuda(),device_ids=range(torch.cuda.device_count()))
             self.D_B1 = nn.DataParallel(self.D_B1.cuda(),device_ids=range(torch.cuda.device_count()))
             self.D_B2 = nn.DataParallel(self.D_B2.cuda(),device_ids=range(torch.cuda.device_count()))
 
@@ -101,9 +101,9 @@ class Trainer(object):
             self.F = GeneratorCNN(
                     a_channel, a_channel, conv_dims, deconv_dims, self.num_gpu)
 
-            self.D_S = DiscriminatorCNN(
+            self.D_A1 = DiscriminatorCNN(
                     a_channel, 1, conv_dims, self.num_gpu)
-            self.D_H = DiscriminatorCNN(
+            self.D_A2 = DiscriminatorCNN(
                     b_channel, 1, conv_dims, self.num_gpu)
             self.D_B1 = DiscriminatorCNN(
                     a_channel, 1, conv_dims, self.num_gpu)
@@ -112,8 +112,8 @@ class Trainer(object):
 
             self.D_B1.apply(weights_init)
             self.D_B2.apply(weights_init)
-            self.D_S.apply(weights_init)
-            self.D_H.apply(weights_init)
+            self.D_A1.apply(weights_init)
+            self.D_A2.apply(weights_init)
             self.G.apply(weights_init)
             self.F.apply(weights_init)
 
@@ -139,9 +139,9 @@ class Trainer(object):
         self.G.load_state_dict(
             torch.load('{}/G_BA_{}.pth'.format(self.load_path, self.start_step), map_location=map_location))
 
-        self.D_S.load_state_dict(
+        self.D_A1.load_state_dict(
             torch.load('{}/D_A_{}.pth'.format(self.load_path, self.start_step), map_location=map_location))
-        self.D_H.load_state_dict(
+        self.D_A2.load_state_dict(
             torch.load('{}/D_B_{}.pth'.format(self.load_path, self.start_step), map_location=map_location))
 
         print("[*] Model loaded: {}".format(G_AB_filename))
@@ -175,7 +175,7 @@ class Trainer(object):
             raise Exception("[!] Caution! Paper didn't use {} opimizer other than Adam".format(config.optimizer))
 
         optimizer_d = optimizer(
-            chain(self.D_S.parameters(), self.D_H.parameters()),
+            chain(self.D_A1.parameters(), self.D_A2.parameters()),
             lr=self.lr, betas=(self.beta1, self.beta2), weight_decay=self.weight_decay)
         optimizer_db = optimizer(
             chain(self.D_B1.parameters(), self.D_B2.parameters()),
@@ -255,8 +255,8 @@ class Trainer(object):
             optimizer_db.step()
 
             ## Update D network
-            self.D_S.zero_grad()
-            self.D_H.zero_grad()
+            self.D_A1.zero_grad()
+            self.D_A2.zero_grad()
             #optimizer_d.zero_grad()
 
             x_A12 = self.G(self.F(x_A1), x_A2).detach()
@@ -268,8 +268,8 @@ class Trainer(object):
             #x_BAB = self.G_AB(x_BA).detach()
 
             if self.loss == "log_prob":
-                l_d_A_real, l_d_A_fake, tmp1 = bce(self.D_S(x_A1), real_tensor), bce(self.D_S(x_A12), fake_tensor), bce(self.D_S(x_A121), fake_tensor)
-                l_d_B_real, l_d_B_fake, tmp2 = bce(self.D_H(x_A2), real_tensor), bce(self.D_H(x_A21), fake_tensor), bce(self.D_H(x_A212), fake_tensor)
+                l_d_A_real, l_d_A_fake, tmp1 = bce(self.D_A1(x_A1), real_tensor), bce(self.D_A1(x_A12), fake_tensor), bce(self.D_A1(x_A121), fake_tensor)
+                l_d_B_real, l_d_B_fake, tmp2 = bce(self.D_A2(x_A2), real_tensor), bce(self.D_A2(x_A21), fake_tensor), bce(self.D_A2(x_A212), fake_tensor)
             elif self.loss == "least_square":
                 l_d_A_real, l_d_A_fake = \
                     0.5 * torch.mean((self.D_A(x_A) - 1)**2), 0.5 * torch.mean((self.D_A(x_BA))**2)
@@ -339,13 +339,13 @@ class Trainer(object):
             L_G_cyc = l_const_A + l_const_AB + l_const_B + l_const_BA
 
             if self.loss == "log_prob":
-                l_gan_A = bce(self.D_S(x_A1G), real_tensor) + bce(self.D_S(x_A1GA1), real_tensor)
+                l_gan_A = bce(self.D_A1(x_A1G), real_tensor) + bce(self.D_A1(x_A1GA1), real_tensor)
                 # + bce(self.D_F(x_B12f, x_B1), real_tensor)
-                l_gan_B = bce(self.D_H(x_A2G), real_tensor) + bce(self.D_H(x_A2GA2), real_tensor)
+                l_gan_B = bce(self.D_A2(x_A2G), real_tensor) + bce(self.D_A2(x_A2GA2), real_tensor)
                 # + bce(self.D_F(x_B21f, x_B2), real_tensor)
             elif self.loss == "least_square":
-                l_gan_A = 0.5 * torch.mean((self.D_S(x_A12) - 1)**2)
-                l_gan_B = 0.5 * torch.mean((self.D_H(x_A21) - 1)**2)
+                l_gan_A = 0.5 * torch.mean((self.D_A1(x_A12) - 1)**2)
+                l_gan_B = 0.5 * torch.mean((self.D_A2(x_A21) - 1)**2)
             else:
                 raise Exception("[!] Unkown loss type: {}".format(self.loss))
             L_G_adv = l_gan_A + l_gan_B
@@ -400,8 +400,8 @@ class Trainer(object):
                 torch.save(self.G.state_dict(), '{}/G_{}.pth'.format(self.model_dir, step))
                 torch.save(self.F.state_dict(), '{}/F_{}.pth'.format(self.model_dir, step))
 
-                torch.save(self.D_H.state_dict(), '{}/D_A1_{}.pth'.format(self.model_dir, step))
-                torch.save(self.D_S.state_dict(), '{}/D_A2_{}.pth'.format(self.model_dir, step))
+                torch.save(self.D_A1.state_dict(), '{}/D_A2_{}.pth'.format(self.model_dir, step))
+                torch.save(self.D_A2.state_dict(), '{}/D_A1_{}.pth'.format(self.model_dir, step))
 
                 torch.save(self.D_B1.state_dict(), '{}/D_B1_{}.pth'.format(self.model_dir, step))
                 torch.save(self.D_B2.state_dict(), '{}/D_B2_{}.pth'.format(self.model_dir, step))
