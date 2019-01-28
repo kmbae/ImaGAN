@@ -12,7 +12,6 @@ This code is a fork from the code for "Learning to Discover Cross-Domain Relatio
 
     $ pip install -r requirements.txt
 
-Pytorch==0.4.1 required 
 ## Start training
 
     $ python main.py
