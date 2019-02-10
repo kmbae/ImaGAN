@@ -20,4 +20,5 @@ This code is a fork from the code for "Learning to Discover Cross-Domain Relatio
 
     $ tensorboard --logdir runs
 
-Check points are save in **logs**
+Check points are saved in **logs**
+tensorboard summaries are saved in **runs**
