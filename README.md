@@ -30,7 +30,7 @@ tensorboard summaries are saved in **runs**
 If you find our work useful please cite 
 ```bibtex
 @InProceedings{10.1007/978-3-030-20890-5_29,
-author = {Bae, Kangmin and Ma, Minuk and Jang, Hyunjun and Ju, Minjeong and Park, Hyoungwoo and Yoo, Chang},
+author = {Bae, Kangmin and Ma, Minuk and Jang, Hyunjun and Ju, Minjeong and Park, Hyoungwoo and Yoo, Chang D.},
 year = {2019},
 month = {06},
 pages = {447-462},
